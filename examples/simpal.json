@@ -1,0 +1,13 @@
+{
+  "control" : {
+    "destdir" : "PWD",
+    "ref" : "/cs/researcher/matsen/Overbaugh_J/HIV_Data/sim/old/clean_fullGenomeLANL/ag.fasta",
+    "frag" : "xFRAGx",
+    "beast_template" : "/cs/researcher/matsen/Overbaugh_J/HIV_Data/scripts/beast_corral/xMODELx.xml"
+  }
+  "subs" : 
+
+
+    "ref" : "/cs/researcher/matsen/Overbaugh_J/HIV_Data/sim/old/clean_fullGenomeLANL/ag.fasta",
+
+}
