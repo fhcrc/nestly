@@ -9,6 +9,12 @@ def json_to_file(fname, d):
   with open(fname, 'w') as ch:
     ch.write(json.dumps(d, indent=4))
 
+def create_dir(dirname):
+  if os.path.isfile(dirname):
+    raise IOError("file blocking mkdir")
+  if not os.path.isdir(dirname):
+    os.mkdir(dirname)
+
 # functions
 def path_list_of_pathpair(path, filel):
   return([os.path.join(path, x) for x in filel])
@@ -31,12 +37,6 @@ def dirname_of_path(path):
 def prep(path, globl):
   globbed = nonempty_glob_pathpair(path, globl)
   return([(g, dirname_of_path(re.sub(path, "", g))) for g in globbed])
-
-def create_dir(dirname):
-  if os.path.isfile(dirname):
-    raise IOError("file blocking mkdir")
-  if not os.path.isdir(dirname):
-    os.mkdir(dirname)
 
 # the actual recursion
 def _aux_build(control, order):
