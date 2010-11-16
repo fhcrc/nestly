@@ -2,6 +2,16 @@ import json, os, glob
 
 homedir = "/cs/researcher/matsen/Overbaugh_J/HIV_Data/"
 
+
+# general functions
+def json_of_file(fname):
+  with open(fname, 'r') as ch:
+    return(json.load(ch))
+
+def json_to_file(fname, d):
+  with open(fname, 'w') as ch:
+    ch.write(json.dumps(d, indent=4))
+
 # functions
 def path_list_of_pathpair(path, filel):
   return([os.path.join(path, x) for x in filel])
@@ -16,47 +26,41 @@ def nonempty_glob(g):
 def nonempty_glob_pathpair(path, globl):
   return(sum([nonempty_glob(g) for g in path_list_of_pathpair(path, globl)], []))
 
-def json_of_file(fname):
-  with open(fname, 'r') as ch:
-    return(json.load(ch))
+# we choose to strip the extension and then replace all slashes with dashes
+def dirname_of_path(path):
+  (base,_) = os.path.splitext(path)
+  return(re.sub("/","-",base))
 
-def json_to_file(fname, d):
-  with open(fname, 'w') as ch:
-    ch.write(json.dumps(d, indent=4))
+def prep(path, globl):
+  globbed = nonempty_glob_pathpair(path, globl)
+  return([(g, dirname_of_path(re.sub(path, "", g))) for g in globbed])
+
 
 # building our dictionaries
 
 control = {
-    "lineage" : "",
-    "ref" : "REF",
-    "frag" : "FRAG",
-    "beast_template" : "TEMPLATE"
-    }
-
-repl = {
-    "REF": 
-    	nonempty_glob_pathpair(
+    "ref" : 
+    	prep(
 	  os.path.join(homedir,"sim/old/clean_fullGenomeLANL/"),
 	  ["ag.fasta"]),
-    "TEMPLATE": 
-	nonempty_glob_pathpair(
+    "frag" : 
+    	prep(
+	  os.path.join(homedir,"sim/beastly/"),
+	  ["singly/*/*/*.fasta", "super/*/*/*.fasta"]),
+    "beast_template" : 
+	prep(
 	  os.path.join(homedir,"scripts/beast_corral/"),
 	  ["hky.coalescent.xml"]),
-    "FRAG": 
-    	nonempty_glob_pathpair(
-	  os.path.join(homedir,"sim/beastly/"),
-	  ["singly/*", "super/*"]),
     }
 
 order = [
-    "REF",
-    "TEMPLATE",
-    "FRAG",
+    "ref",
+    "beast_template",
+    "frag",
     ]
 
 complete = {
     "control": control,
-    "repl": repl,
     "order": order,
     }
 
