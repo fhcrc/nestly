@@ -1,7 +1,4 @@
-import json, os, glob
-
-homedir = "/cs/researcher/matsen/Overbaugh_J/HIV_Data/"
-
+import json, os, glob, copy, re
 
 # general functions
 def json_of_file(fname):
@@ -35,33 +32,27 @@ def prep(path, globl):
   globbed = nonempty_glob_pathpair(path, globl)
   return([(g, dirname_of_path(re.sub(path, "", g))) for g in globbed])
 
+def create_dir(dirname):
+  if os.path.isfile(dirname):
+    raise IOError("file blocking mkdir")
+  if not os.path.isdir(dirname):
+    os.mkdir(dirname)
 
-# building our dictionaries
+# the actual recursion
+def _aux_build(control, order):
+  if not order:
+    json_to_file("control.json", control)
+    return()
+  else:
+    json_to_file("precontrol.json", control)
+    curr = order[0]
+    level_control = copy.copy(control)
+    for (fname, dirname) in control[curr]:
+      create_dir(dirname)
+      os.chdir(dirname)
+      level_control[curr] = fname
+      _aux_build(level_control, order[1:])
+      os.chdir("..")
 
-control = {
-    "ref" : 
-    	prep(
-	  os.path.join(homedir,"sim/old/clean_fullGenomeLANL/"),
-	  ["ag.fasta"]),
-    "frag" : 
-    	prep(
-	  os.path.join(homedir,"sim/beastly/"),
-	  ["singly/*/*/*.fasta", "super/*/*/*.fasta"]),
-    "beast_template" : 
-	prep(
-	  os.path.join(homedir,"scripts/beast_corral/"),
-	  ["hky.coalescent.xml"]),
-    }
-
-order = [
-    "ref",
-    "beast_template",
-    "frag",
-    ]
-
-complete = {
-    "control": control,
-    "order": order,
-    }
-
-json_to_file("complete.json", complete)
+def build(complete):
+  _aux_build(complete["control"], complete["order"])

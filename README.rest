@@ -1,0 +1,18 @@
+======
+simpal
+======
+
+Simpal is a collection of functions designed to make simulations easier. 
+
+We often want to structure input data via nested directories and have that reflected in file names.
+
+Want to apply various combinations of parameters, softwares, and files in a flexible way. 
+
+
+Potential structures
+====================
+
+
+Results analysis
+================
+Want to be able to extract results by keyword
