@@ -1,18 +1,96 @@
+
 ======
 simpal
 ======
 
-Simpal is a collection of functions designed to make simulations easier. 
+Simpal is a collection of functions designed to make combinatorial choices of parameters easier. 
 
-We often want to structure input data via nested directories and have that reflected in file names.
+The setup for simpal is that we have a collection of simulations we would like to run with different parameter choices.
+However, importantly, the set of parameters is fixed for all of the simulations.
+We would like to set things up tidily with nested directories reflecting nested parameter choices.
 
-Want to apply various combinations of parameters, softwares, and files in a flexible way. 
+Note that a fixed set of parameters is not the only way to go, and in Extensions_ below we describe a more general setup.
+
+The vision here is that we take a fixed set of parameters and generate a single type of output, which can then be fed into a database for comparison and retrieval.
+
+Each param is a level of nested directory, and each choice is a directory in that structure.
 
 
-Potential structures
-====================
+Param lists
+===========
+We supply a function which decides which of these pairs to use in the next version of the control data structure
+
+all_choices takes a param and a control dict containing that param then substitutes in all of the values that are contained by that param, making the and entering the appropriate directories
+
+filter_choices takes a param and a function which specifies filtering on the param under consideration and a control dict
+it just makes substitutions in the control dict for those values which satisfy the filter function
+
+glob_choices takes a param and a control dict, then offers a way to glob based on the control file
+
+what if we just offer a series of generate_next functions and we go through those
+
+eg given control file we just 
+  - recur over all
+  - take a subset given choices
+  - glob
+
+assemble_frag_dir
+
+the commonality is that each one makes a directory returns a list of choices for the next param
+the function takes those choices, chdirs, updates the control dictionary, then recurs
+
+Example
+-------
+
+starting control (in a json file)
+`````````````````````````````````
+ref_base
+frag_base
+
+params in order
+```````````````
+superinf_status
+beast_template
+locus
+length
+samplename
+
+resulting control
+`````````````````
+frag
+ref
+beast_template
+
+
+offer a function that takes a series of tags and puts them together after applying the control dictionary.
+
+assert that files exist
+
+
+Implementation
+--------------
+At each node we specify function giving action of param on the control file, and children 
 
 
 Results analysis
 ================
 Want to be able to extract results by keyword
+
+
+
+Extensions
+==========
+
+Parameter trees
+---------------
+One natural extension of a list is a tree.
+
+If there are some types of simulation which require different number of parameter choices.
+for example, say we had a no rate var sim and a rate var sim.
+would need to collapse all of those choices into a single one.
+
+Con
+```
+will make things complex from the database side of things-- rather than a parameter list we have combinations of parameters...
+but we need a complete control param dictionary--
+
