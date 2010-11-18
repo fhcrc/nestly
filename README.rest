@@ -18,23 +18,16 @@ Each param is a level of nested directory, and each choice is a directory in tha
 
 Param lists
 ===========
-We supply a function which decides which of these pairs to use in the next version of the control data structure
+In the main hash, we supply a function which takes the control so far and spits out a list of the next things to use.
 
-all_choices takes a param and a control dict containing that param then substitutes in all of the values that are contained by that param, making the and entering the appropriate directories
+The following may be useful for constructing such functions.
 
-filter_choices takes a param and a function which specifies filtering on the param under consideration and a control dict
+filter_choices 
+  takes a param and a function which specifies filtering on the param under consideration and a control dict
 it just makes substitutions in the control dict for those values which satisfy the filter function
 
-glob_choices takes a param and a control dict, then offers a way to glob based on the control file
-
-what if we just offer a series of generate_next functions and we go through those
-
-eg given control file we just 
-  - recur over all
-  - take a subset given choices
-  - glob
-
-assemble_frag_dir
+glob_choices 
+  takes a param and a control dict, then offers a way to glob based on the control file
 
 the commonality is that each one makes a directory returns a list of choices for the next param
 the function takes those choices, chdirs, updates the control dictionary, then recurs
