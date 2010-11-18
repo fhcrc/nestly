@@ -1,31 +1,37 @@
 #!/usr/bin/env python
 
-import sys
+import sys, os
+sys.path.append(".")
 sys.path.append("..")
-import simpal, os, glob, copy
+from simpal import *
 
 homedir = "/cs/researcher/matsen/Overbaugh_J/HIV_Data/"
+refdir = os.path.join(homedir,"sim/old/clean_fullGenomeLANL/")
+fragdir = os.path.join(homedir,"sim/beastly/frags")
+corraldir = os.path.join(homedir,"scripts/beast_corral/")
 
 # building our dictionaries
 control = {
-    "ref" : 
-    	simpal.prep(
-	  os.path.join(homedir,"sim/old/clean_fullGenomeLANL/"),
-	  ["ag.fasta"]),
-    "frag" : 
-    	simpal.prep(
-	  os.path.join(homedir,"sim/beastly/"),
-	  ["singly/*/*/*.fasta", "super/*/*/*.fasta"]),
-    "beast_template" : 
-	simpal.prep(
-	  os.path.join(homedir,"scripts/beast_corral/"),
-	  ["hky.coalescent.xml"]),
-    }
+	#"ref": 
+	#    all_choices(file_nv, homedir, ["ag.fasta"]),
+	"beast_template": 
+	    all_choices(file_nv, corraldir, ["hky.coalescent.xml"]),
+	"is_superinf": 
+	    all_globs(dir_nv, fragdir, ["*"]),
+	"length": 
+	    (lambda(c): map(dir_nv, collect_globs(c["is_superinf"], "*"))),
+	"locus": 
+	    (lambda(c): map(dir_nv, collect_globs(c["length"], "*"))),
+	"frag": 
+	    (lambda(c): map(file_nv, collect_globs(c["locus"], "*"))),
+	}
 
 order = [
-    "ref",
-    "beast_template",
-    "frag",
+	"beast_template",
+	"is_superinf",
+	"length",
+ 	"locus",
+	"frag",
     ]
 
 complete = {
@@ -33,5 +39,8 @@ complete = {
     "order": order,
     }
 
-simpal.build(complete)
+build(complete)
+
+
+#	  ["singly/*/*/*.fasta", "super/*/*/*.fasta"]),
 

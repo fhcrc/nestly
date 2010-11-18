@@ -35,11 +35,6 @@ the function takes those choices, chdirs, updates the control dictionary, then r
 Example
 -------
 
-starting control (in a json file)
-`````````````````````````````````
-ref_base
-frag_base
-
 params in order
 ```````````````
 superinf_status
