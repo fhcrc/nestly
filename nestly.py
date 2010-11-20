@@ -30,8 +30,11 @@ def create_dir(dirname):
 	os.mkdir(dirname)
 
 def assert_extant(fname):
-    if not(os.path.isfile(fname)):
-	raise IOError("file does not exist: "+fname)
+    if not(os.path.isfile(fname) or os.path.isdir(fname)):
+	raise IOError("path does not exist: "+fname)
+
+def filter_dir(pathl):
+    [path for path in pathl if os.path.isdir(path)]
 
 # functions
 def path_list_of_pathpair(path, filel):
@@ -47,11 +50,31 @@ def nonempty_glob(g):
 def collect_globs(path, globl):
     return(sum([nonempty_glob(g) for g in path_list_of_pathpair(path, globl)], []))
 
+def filter_dir(pathl):
+    return([path for path in pathl if os.path.isdir(path)])
+
+# the all_* functions make lambdas that don't do anything interesting with their argument
 def all_choices(how, path, filel):
     return(lambda(_): map(how, path_list_of_pathpair(path, filel)))
 
 def all_globs(how, path, globl):
     return(lambda(_): map(how, collect_globs(path, globl)))
+
+def all_dir_globs(how, path, globl):
+    return(lambda(_): map(how, filter_dir(collect_globs(path, globl))))
+
+# mirror a directory structure
+def mirror_dir(start_path, start_paraml, control):
+    # recur by taking all globs from previous dir
+    def aux(paraml):
+	if 1 < len(paraml):
+	    control[paraml[1]] = (
+		lambda(c): map(dir_nv, filter_dir(collect_globs(c[paraml[0]], "*"))))
+	    aux(paraml[1:])
+    # start recursion by doing all directories
+    if start_paraml:
+	control[start_paraml[0]] = all_dir_globs(dir_nv, start_path, ["*"])
+        aux(start_paraml)
 
 # we choose to strip the extension and then replace all slashes with dashes
 def dirname_of_path(path):
@@ -59,22 +82,23 @@ def dirname_of_path(path):
     return(re.sub("/","-",base))
 
 # the actual recursion
-def _aux_build(control, order):
-    if not order:
+def _aux_build(control, paraml):
+    if not paraml:
 	json_to_file("control.json", control)
 	return()
     else:
 	# json_to_file("precontrol.json", control)
-	curr = order[0]
+	curr = paraml[0]
 	level_control = copy.copy(control)
 	for nv in control[curr](control):
 	    # we only want to make one directory level at a time:
 	    assert(not (re.search("/", nv.name)))
 	    create_dir(nv.name)
 	    os.chdir(nv.name)
-	    level_control[curr] = nv.value
-	    _aux_build(level_control, order[1:])
+	    level_control[curr] = nv.val
+	    _aux_build(level_control, paraml[1:])
 	    os.chdir("..")
 
 def build(complete):
-    _aux_build(complete["control"], complete["order"])
+    control = complete["control"]
+    _aux_build(control, control.keys())
