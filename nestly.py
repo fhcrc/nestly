@@ -14,14 +14,21 @@ def base_nv(val):
     base = os.path.basename(path)
     return(NV(name = base, val = base))
 
+# used when we don't want to make a directory
+def none_nv(path):
+    return(NV(name = None, val = path))
+
 # general functions
-def json_of_file(fname):
+def d_of_jsonfile(fname):
     with open(fname, 'r') as ch:
 	return(json.load(ch))
 
-def json_to_file(fname, d):
+def d_to_jsonfile(fname, d):
     with open(fname, 'w') as ch:
 	ch.write(json.dumps(d, indent=4))
+
+def nvd_to_jsonfile(fname, d):
+    d_to_jsonfile(fname, dict([(k, v.val) for (k, v) in d.items()]))
 
 def create_dir(dirname):
     if os.path.isfile(dirname):
@@ -69,7 +76,7 @@ def mirror_dir(start_path, start_paraml, control):
     def aux(paraml):
 	if 1 < len(paraml):
 	    control[paraml[1]] = (
-		lambda(c): map(dir_nv, filter_dir(collect_globs(c[paraml[0]], "*"))))
+		lambda(c): map(dir_nv, filter_dir(collect_globs(c[paraml[0]].val, "*"))))
 	    aux(paraml[1:])
     # start recursion by doing all directories
     if start_paraml:
@@ -84,20 +91,25 @@ def dirname_of_path(path):
 # the actual recursion
 def _aux_build(control, paraml):
     if not paraml:
-	json_to_file("control.json", control)
+	nvd_to_jsonfile("control.json", control)
 	return()
     else:
 	# json_to_file("precontrol.json", control)
 	curr = paraml[0]
 	level_control = copy.copy(control)
 	for nv in control[curr](control):
-	    # we only want to make one directory level at a time:
-	    assert(not (re.search("/", nv.name)))
-	    create_dir(nv.name)
-	    os.chdir(nv.name)
-	    level_control[curr] = nv.val
-	    _aux_build(level_control, paraml[1:])
-	    os.chdir("..")
+	    level_control[curr] = nv
+	    if nv.name:
+		# if there is a name then we make a directory
+		# below: we only want to make one directory level at a time
+    	        assert(not (re.search("/", nv.name)))
+    	        create_dir(nv.name)
+    	        os.chdir(nv.name)
+    	        _aux_build(level_control, paraml[1:])
+    	        os.chdir("..")
+	    else:
+		# no name-- just recur through
+		_aux_build(level_control, paraml[1:])
 
 def build(complete):
     control = complete["control"]
