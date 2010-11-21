@@ -62,9 +62,11 @@ def filter_dir(pathl):
 
 # the all_* functions make lambdas that don't do anything interesting with their argument
 def all_choices(how, path, filel):
+    """used when we can list all of the files of interest"""
     return(lambda(_): map(how, path_list_of_pathpair(path, filel)))
 
 def all_globs(how, path, globl):
+    """used when we want all of a certain list of globs"""
     return(lambda(_): map(how, collect_globs(path, globl)))
 
 def all_dir_globs(how, path, globl):
