@@ -18,9 +18,6 @@ SRUN_COMMAND = 'srun -p emhigh ' # Specify srun command with any options such as
 DRYRUN = False                   # Run in dryrun mode, default is False.
 
 
-# DESIRED: i'd like for this to be an argument
-templ = string.Template("raxmlHPC -m GTRGAMMA -n bla -s $infile")
-
 def invoke(max_procs, json_files):
     """
     Create a pool or processes that execute commands in parallel.
@@ -43,7 +40,7 @@ def worker(json_file):
     os.chdir(json_directory)
   
     # Perform subsitution, prepend 'srun' if necessary.
-    work = templ.substitute(d)
+    work = string.Template(shmem.data['template']).substitute(d)
     if shmem.data['srun']:
         work = SRUN_COMMAND + work
 
@@ -70,7 +67,9 @@ def file_test(argument):
     """
     Test to make sure the path leads to a file that is readable.
     """
-    if os.access(argument, os.R_OK) and os.path.isfile(argument):
+    # Whitespace in filenames is *not* supported.
+    filename = argument.replace(' ', '')
+    if os.access(filename, os.R_OK) and os.path.isfile(filename):
         return argument
 
 
@@ -85,17 +84,28 @@ def parse_arguments():
     # We will use argv to build up a list of files.
     argv = sys.argv[1:]
     json_files = filter(file_test, argv)
-
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
     parser.add_argument('--local', dest='local_procs', type=int, help='Run a maximum of N processes in parallel locally.')
     parser.add_argument('--srun', dest='srun_procs', type=int, help='Run a maximum of N processes in parallel on a cluster with slurm.')
+    parser.add_argument('--template', dest='template', required=True, metavar="'template text'",
+                         help='Command-execution template. Must be in single quotes or \
+                               $ character pre-pended to $infile must be escaped.')
     parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
     parser.add_argument('<json_files>', nargs='*') # Used sys.argv already for this, but could have done a custom type here.
     arguments = parser.parse_args()
+
+    # Make sure at least one JSON file was specified.
+    if len(json_files) == 0:
+        parser.print_help()
+        parser.exit(1, "\nError: No JSON files were specified.\n")
+
  
     if arguments.local_procs is not None and arguments.srun_procs is not None:
         parser.print_help()
         parser.exit(1, "\nError: --srun and --local are mutually exclusive.\n")
+    
+    
+    template = arguments.template
 
     # Grab max procs if specified and whether or not srun will be used.
     if arguments.local_procs is not None: 
@@ -107,14 +117,15 @@ def parse_arguments():
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
-    return dryrun, srun, max_procs, json_files
+    return dryrun, template, srun, max_procs, json_files
 
 def main():
-    dryrun, srun, max_procs, json_files = parse_arguments()
+    dryrun, template, srun, max_procs, json_files = parse_arguments()
     # Create a dictionary that will be shared amongst all forked processes.
     shmem.data['dryrun'] = dryrun
     shmem.data['srun'] = srun
     shmem.data['start_directory'] = os.getcwd()
+    shmem.data['template'] = template
     invoke(max_procs, json_files)
 
 
