@@ -48,7 +48,7 @@ def worker(json_file):
     """
     Handle parameter substitution and execute command as child process.
     """
-    # Support either full or relative paths.
+    # PERHAPS TODO: Support either full or relative paths.
     os.chdir(shmem.data['start_directory'])
     d = d_of_jsonfile(json_file)
     json_directory = os.path.dirname(json_file)
@@ -66,9 +66,10 @@ def worker(json_file):
     # if a template file is being used, then we write out to it
     template_file = shmem.data['template_file']
     if template_file:
+	assert_file_exists(template_file)
 	with open(os.path.basename(template_file), 'w') as out_fobj:
 	    template_subs_file(template_file, out_fobj, d)
-  
+
     # Perform subsitution, prepend 'srun' if necessary.
     work = string.Template(shmem.data['template']).substitute(d)
     if shmem.data['srun']:
@@ -78,12 +79,13 @@ def worker(json_file):
 	with open(savecmd_file, 'w') as command_file:
 	    command_file.write(work + "\n")
 
+    print "Execution directory currently: " + os.getcwd()
+
     # View what actions will take place in dryrun mode.
     if shmem.data['dryrun']:
-        print "Execution directory currently: " + os.getcwd() + "\n" + work + "\n"
-        command = [ "/bin/sleep 1" ]
-        subprocess.call(command, shell=True)
+	print "dry run of: " + work + "\n"
     else:
+	print "running: " + work + "\n"
         command_regex = re.compile(r'\s+')
         try:
             #subprocess.call(command_regex.split(work))
@@ -147,12 +149,15 @@ def parse_arguments():
         insufficient_args("Error: --srun and --local are mutually exclusive.")
     
     # Make sure that either a template or a template file was given
+    if arguments.template_file:
+    # if given a template file, the default is to make a template using TEMPLATEFILE_RUN_CMD
+	template = TEMPLATEFILE_RUN_CMD + arguments.template_file
     if arguments.template:
 	template = arguments.template
-    elif arguments.template_file:
-	template = TEMPLATEFILE_RUN_CMD + arguments.template_file
-    else:
+    if not (arguments.template or arguments.template_file):
 	insufficient_args("Error: Please specify either a template or a template file")
+    
+    print "template: "+template
 
     # Grab max procs if specified and whether or not srun will be used.
     if arguments.local_procs is not None: 
@@ -164,10 +169,10 @@ def parse_arguments():
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
-    # NOTE: Brian-- this many positional arguments freaks me out.
+    # NOTE: Brian-- this many positionally-organized items freaks me out.
     # is there any reason not to return a dictionary with the correspondig key-value pairs, and then do
     # shmem.data = parse_arguments()
-    # ??
+    # ?
 
     return dryrun, template, arguments.template_file, arguments.savecmd_file, arguments.log_file, srun, max_procs, json_files
 
