@@ -36,6 +36,13 @@ def worker(json_file):
     d = d_of_jsonfile(json_file)
     json_directory = os.path.dirname(json_file)
 
+    # STDOUT and STDERR will be writtne to a log file in each job directory.
+    log_file = shmem.data['log_file']
+
+    # A template file will be written in each job directory, including the 
+    # substitution that was performed..
+    template_file = shmem.data['template_file']
+
     # cd into the directory containing the json file.
     os.chdir(json_directory)
   
@@ -52,7 +59,12 @@ def worker(json_file):
     else:
         command_regex = re.compile(r'\s+')
         try:
-            subprocess.call(command_regex.split(work))
+            #subprocess.call(command_regex.split(work))
+            with open(template_file, 'w') as command_file:
+                command_file.write(work + "\n")
+            with open(log_file, 'w') as log:
+                child = subprocess.Popen(command_regex.split(work), stdout=log, stderr=log)
+                child.wait()
         except: 
             traceback.print_exc(file=sys.stdout)
             # Seems useful to print the command that failed to make the traceback 
@@ -63,13 +75,13 @@ def worker(json_file):
     return
 
 
-def file_test(argument):
+def json_file_test(argument):
     """
-    Test to make sure the path leads to a file that is readable.
+    Test to make sure the path leads to a .json file that is readable.
     """
     # Whitespace in filenames is *not* supported.
     filename = argument.replace(' ', '')
-    if os.access(filename, os.R_OK) and os.path.isfile(filename):
+    if os.access(filename, os.R_OK) and os.path.isfile(filename) and '.json' in argument.lower():
         return argument
 
 
@@ -83,13 +95,15 @@ def parse_arguments():
 
     # We will use argv to build up a list of files.
     argv = sys.argv[1:]
-    json_files = filter(file_test, argv)
+    json_files = filter(json_file_test, argv)
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
     parser.add_argument('--local', dest='local_procs', type=int, help='Run a maximum of N processes in parallel locally.')
     parser.add_argument('--srun', dest='srun_procs', type=int, help='Run a maximum of N processes in parallel on a cluster with slurm.')
     parser.add_argument('--template', dest='template', required=True, metavar="'template text'",
                          help='Command-execution template. Must be in single quotes or \
                                $ character pre-pended to $infile must be escaped.')
+    parser.add_argument('--templatefile', dest='template_file', default='command.txt', help='Name of the file that will contain the command that was executed.')
+    parser.add_argument('--logfile', dest='log_file', default='log.txt', help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
     parser.add_argument('<json_files>', nargs='*') # Used sys.argv already for this, but could have done a custom type here.
     arguments = parser.parse_args()
@@ -117,15 +131,17 @@ def parse_arguments():
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
-    return dryrun, template, srun, max_procs, json_files
+    return dryrun, template, arguments.template_file, arguments.log_file, srun, max_procs, json_files
 
 def main():
-    dryrun, template, srun, max_procs, json_files = parse_arguments()
+    dryrun, template, template_file, log_file, srun, max_procs, json_files = parse_arguments()
     # Create a dictionary that will be shared amongst all forked processes.
     shmem.data['dryrun'] = dryrun
     shmem.data['srun'] = srun
     shmem.data['start_directory'] = os.getcwd()
     shmem.data['template'] = template
+    shmem.data['template_file'] = template_file
+    shmem.data['log_file'] = log_file
     invoke(max_procs, json_files)
 
 
