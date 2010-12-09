@@ -41,7 +41,7 @@ def worker(json_file):
 
     # A template file will be written in each job directory, including the 
     # substitution that was performed..
-    template_file = shmem.data['template_file']
+    savecmd_file = shmem.data['savecmd_file']
 
     # cd into the directory containing the json file.
     os.chdir(json_directory)
@@ -60,7 +60,7 @@ def worker(json_file):
         command_regex = re.compile(r'\s+')
         try:
             #subprocess.call(command_regex.split(work))
-            with open(template_file, 'w') as command_file:
+            with open(savecmd_file, 'w') as command_file:
                 command_file.write(work + "\n")
             with open(log_file, 'w') as log:
                 child = subprocess.Popen(command_regex.split(work), stdout=log, stderr=log)
@@ -102,7 +102,7 @@ def parse_arguments():
     parser.add_argument('--template', dest='template', required=True, metavar="'template text'",
                          help='Command-execution template. Must be in single quotes or \
                                $ character pre-pended to $infile must be escaped.')
-    parser.add_argument('--templatefile', dest='template_file', default='command.txt', help='Name of the file that will contain the command that was executed.')
+    parser.add_argument('--savecmdfile', dest='savecmd_file', help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--logfile', dest='log_file', default='log.txt', help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
     parser.add_argument('<json_files>', nargs='*') # Used sys.argv already for this, but could have done a custom type here.
@@ -131,16 +131,16 @@ def parse_arguments():
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
-    return dryrun, template, arguments.template_file, arguments.log_file, srun, max_procs, json_files
+    return dryrun, template, arguments.savecmd_file, arguments.log_file, srun, max_procs, json_files
 
 def main():
-    dryrun, template, template_file, log_file, srun, max_procs, json_files = parse_arguments()
+    dryrun, template, savecmd_file, log_file, srun, max_procs, json_files = parse_arguments()
     # Create a dictionary that will be shared amongst all forked processes.
     shmem.data['dryrun'] = dryrun
     shmem.data['srun'] = srun
     shmem.data['start_directory'] = os.getcwd()
     shmem.data['template'] = template
-    shmem.data['template_file'] = template_file
+    shmem.data['savecmd_file'] = savecmd_file
     shmem.data['log_file'] = log_file
     invoke(max_procs, json_files)
 
