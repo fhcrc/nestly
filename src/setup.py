@@ -12,4 +12,5 @@ setup(name = 'nestly',
       package_dir = {'nestly': '.'},
       packages = ['nestly'],
       scripts = glob.glob('scripts/*.py'),
+      requires = ['python (>= 2.7)'],
       )

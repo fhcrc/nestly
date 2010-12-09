@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#######!/usr/bin/env python
 
-import sys, os, collections
-sys.path.append(".")
-sys.path.append("../..")
-from nestly import *
+import sys, os, collections, json
+#sys.path.append(".")
+#sys.path.append("../..")
+from nestly.nestly import *
 
 wd = os.getcwd()
 startersdir = os.path.join(wd,"starters/")

@@ -168,23 +168,21 @@ def parse_arguments():
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
-    # NOTE: Brian-- this many positionally-organized items freaks me out.
-    # is there any reason not to return a dictionary with the correspondig key-value pairs, and then do
-    # shmem.data = parse_arguments()
-    # ?
 
-    return dryrun, template, arguments.template_file, arguments.savecmd_file, arguments.log_file, srun, max_procs, json_files
+    # Create a dictionary that will be shared amongst all forked processes.
+    data = {}
+    data['dryrun'] = dryrun
+    data['srun'] = srun
+    data['start_directory'] = os.getcwd()
+    data['template'] = template
+    data['template_file'] = arguments.template_file
+    data['savecmd_file'] = arguments.savecmd_file
+    data['log_file'] = arguments.log_file
+
+    return data, max_procs, json_files
 
 def main():
-    dryrun, template, template_file, savecmd_file, log_file, srun, max_procs, json_files = parse_arguments()
-    # Create a dictionary that will be shared amongst all forked processes.
-    shmem.data['dryrun'] = dryrun
-    shmem.data['srun'] = srun
-    shmem.data['start_directory'] = os.getcwd()
-    shmem.data['template'] = template
-    shmem.data['template_file'] = template_file
-    shmem.data['savecmd_file'] = savecmd_file
-    shmem.data['log_file'] = log_file
+    shmem.data, max_procs, json_files = parse_arguments()
     invoke(max_procs, json_files)
 
 
