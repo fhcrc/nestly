@@ -7,7 +7,7 @@ def d_of_jsonfile(fname):
 
 def d_to_jsonfile(fname, d):
     with open(fname, 'w') as ch:
-	ch.write(json.dumps(d, indent=4))
+	ch.write(json.dumps(d, indent=4)+"\n")
 
 def nvd_to_jsonfile(fname, d):
     d_to_jsonfile(fname, 

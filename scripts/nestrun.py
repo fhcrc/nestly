@@ -7,7 +7,7 @@ import sys, os, collections, string, argparse, re, subprocess, traceback
 import shmem 
 
 sys.path.append(".")
-sys.path.append("../..")
+sys.path.append("/home/rkodner/erick/src/nestly/")
 from nestly import *
 from multiprocessing import Pool
 
