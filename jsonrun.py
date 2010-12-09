@@ -51,6 +51,10 @@ def worker(json_file):
     if shmem.data['srun']:
         work = SRUN_COMMAND + work
 
+    if savecmd_file:
+	with open(savecmd_file, 'w') as command_file:
+	    command_file.write(work + "\n")
+
     # View what actions will take place in dryrun mode.
     if shmem.data['dryrun']:
         print "Execution directory currently: " + os.getcwd() + "\n" + work + "\n"
@@ -60,8 +64,6 @@ def worker(json_file):
         command_regex = re.compile(r'\s+')
         try:
             #subprocess.call(command_regex.split(work))
-            with open(savecmd_file, 'w') as command_file:
-                command_file.write(work + "\n")
             with open(log_file, 'w') as log:
                 child = subprocess.Popen(command_regex.split(work), stdout=log, stderr=log)
                 child.wait()
