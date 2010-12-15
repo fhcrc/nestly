@@ -6,7 +6,7 @@ sys.path.append("../..")
 from nestly import *
 
 wd = os.getcwd()
-indir = os.path.join(wd,"some_phy/")
+indir = os.path.join(wd,"prep/some_phy/")
 
 ctl = collections.OrderedDict({})
 
