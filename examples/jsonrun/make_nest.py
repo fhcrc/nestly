@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
 import sys, os, collections
-sys.path.append(".")
-sys.path.append("../..")
-from nestly import *
+from nestly.nestly import *
 
 wd = os.getcwd()
 indir = os.path.join(wd,"prep/some_phy/")
