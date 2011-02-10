@@ -5,9 +5,11 @@
 
 import sys, os, collections, string, argparse, re, subprocess, traceback
 
-sys.path.append(".")
-sys.path.append("/home/rkodner/erick/src/nestly/")
-from nestly import *
+#sys.path.append(".")
+#sys.path.append("/home/rkodner/erick/src/nestly/")
+#sys.path.insert("../../") # Could be useful for testing in dev env.
+from nestly.nestly import *
+from nestly import shmem
 from multiprocessing import Pool
 
 # This will get populated in main() and later be shared by all children. 
