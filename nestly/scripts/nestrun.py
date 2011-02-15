@@ -1,18 +1,13 @@
-#!/usr/bin/env python
-
 # possible TODOs:
 # - should we make it possible to specify a relative path for template_file?
 
 import sys, os, collections, string, argparse, re, subprocess, traceback
 
-#sys.path.append(".")
-#sys.path.append("/home/rkodner/erick/src/nestly/")
-#sys.path.insert("../../") # Could be useful for testing in dev env.
 from nestly.nestly import *
 from nestly import shmem
 from multiprocessing import Pool
 
-# This will get populated in main() and later be shared by all children. 
+# This will get populated in main() and later be shared by all children.
 shmem.data = {}
 
 # Constants to be used as defaults.
@@ -57,7 +52,7 @@ def worker(json_file):
     # STDOUT and STDERR will be writtne to a log file in each job directory.
     log_file = shmem.data['log_file']
 
-    # A template file will be written in each job directory, including the 
+    # A template file will be written in each job directory, including the
     # substitution that was performed..
     savecmd_file = shmem.data['savecmd_file']
 
@@ -93,14 +88,13 @@ def worker(json_file):
             with open(log_file, 'w') as log:
                 child = subprocess.Popen(command_regex.split(work), stdout=log, stderr=log)
                 child.wait()
-        except: 
+        except:
             traceback.print_exc(file=sys.stdout)
-            # Seems useful to print the command that failed to make the traceback 
+            # Seems useful to print the command that failed to make the traceback
             # more meaningful.
-            # Note that error output could get mixed up if two processes encounter errors 
+            # Note that error output could get mixed up if two processes encounter errors
             # at the same instance.
             print "Error executing: " + work + "\n"
-    return
 
 
 def json_file_test(argument):
@@ -119,7 +113,7 @@ def parse_arguments():
     """
     max_procs = MAX_PROCS
     dryrun = DRYRUN
-    srun = SRUN 
+    srun = SRUN
 
     # We will use argv to build up a list of files.
     argv = sys.argv[1:]
@@ -145,10 +139,10 @@ def parse_arguments():
     # Make sure at least one JSON file was specified.
     if len(json_files) == 0:
         insufficient_args("Error: No JSON files were specified.")
- 
+
     if arguments.local_procs is not None and arguments.srun_procs is not None:
         insufficient_args("Error: --srun and --local are mutually exclusive.")
-    
+
     # Make sure that either a template or a template file was given
     if arguments.template_file:
     # if given a template file, the default is to make a template using TEMPLATEFILE_RUN_CMD
@@ -157,16 +151,16 @@ def parse_arguments():
 	template = arguments.template
     if not (arguments.template or arguments.template_file):
 	insufficient_args("Error: Please specify either a template or a template file")
-    
+
     print "template: "+template
 
     # Grab max procs if specified and whether or not srun will be used.
-    if arguments.local_procs is not None: 
+    if arguments.local_procs is not None:
         max_procs = arguments.local_procs
     elif arguments.srun_procs is not None:
         max_procs = arguments.srun_procs
         srun = True
-    
+
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
@@ -186,8 +180,3 @@ def parse_arguments():
 def main():
     shmem.data, max_procs, json_files = parse_arguments()
     invoke(max_procs, json_files)
-
-
-if __name__ == '__main__':
-    sys.exit(main())
-
