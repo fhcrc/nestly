@@ -11,7 +11,6 @@ import os
 
 from nestly.nestly import *
 from nestly import shmem
-from multiprocessing import Pool
 
 # This will get populated in main() and later be shared by all children.
 shmem.data = {}
@@ -27,12 +26,33 @@ TEMPLATEFILE_RUN_CMD = 'source '
 
 
 def invoke(max_procs, json_files):
-    """
-    Create a pool or processes that execute commands in parallel.
-    """
-    pool = Pool(processes=max_procs)
-    pool.map(worker, json_files)
-    #map(lambda f: worker(f, 1), json_files)
+    procs = {}
+    files = iter(json_files)
+    while True:
+        while len(procs) < max_procs:
+            try:
+                json_file = files.next()
+            except StopIteration:
+                if not procs:
+                    return
+                break
+            g = worker(json_file)
+            try:
+                proc = g.next()
+            except StopIteration:
+                continue
+            else:
+                procs[proc.pid] = proc, g
+
+        pid, _ = os.wait()
+        proc, g = procs.pop(pid)
+        try:
+            g.next()
+        except StopIteration:
+            pass
+        else:
+            raise ValueError('worker generators should only yield once')
+
 
 # NOTE: can we avoid doing this by passing a flag to open to make it barf?
 def assert_file_exists(path):
@@ -88,8 +108,7 @@ def worker(json_file):
         try:
             #subprocess.call(command_regex.split(work))
             with open(p(log_file), 'w') as log:
-                child = subprocess.Popen(shlex.split(work), stdout=log, stderr=log, cwd=p())
-                child.wait()
+                yield subprocess.Popen(shlex.split(work), stdout=log, stderr=log, cwd=p())
         except:
             traceback.print_exc(file=sys.stdout)
             # Seems useful to print the command that failed to make the traceback
