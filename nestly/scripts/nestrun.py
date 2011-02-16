@@ -1,7 +1,13 @@
 # possible TODOs:
 # - should we make it possible to specify a relative path for template_file?
 
-import sys, os, collections, string, argparse, re, subprocess, traceback
+from string import Template
+import subprocess
+import traceback
+import argparse
+import shlex
+import sys
+import os
 
 from nestly.nestly import *
 from nestly import shmem
@@ -38,16 +44,17 @@ def template_subs_file(in_file, out_fobj, d):
     assert_file_exists(in_file)
     with open(in_file, 'r') as in_fobj:
 	for line in in_fobj:
-	    out_fobj.write(string.Template(line).substitute(d))
+	    out_fobj.write(Template(line).substitute(d))
 
 def worker(json_file):
     """
     Handle parameter substitution and execute command as child process.
     """
     # PERHAPS TODO: Support either full or relative paths.
-    os.chdir(shmem.data['start_directory'])
     d = d_of_jsonfile(json_file)
     json_directory = os.path.dirname(json_file)
+    def p(*parts):
+        return os.path.join(json_directory, *parts)
 
     # STDOUT and STDERR will be writtne to a log file in each job directory.
     log_file = shmem.data['log_file']
@@ -56,23 +63,19 @@ def worker(json_file):
     # substitution that was performed..
     savecmd_file = shmem.data['savecmd_file']
 
-    # cd into the directory containing the json file.
-    os.chdir(json_directory)
-
     # if a template file is being used, then we write out to it
     template_file = shmem.data['template_file']
     if template_file:
-	assert_file_exists(template_file)
-	with open(os.path.basename(template_file), 'w') as out_fobj:
+	with open(p(template_file), 'w') as out_fobj:
 	    template_subs_file(template_file, out_fobj, d)
 
     # Perform subsitution, prepend 'srun' if necessary.
-    work = string.Template(shmem.data['template']).substitute(d)
+    work = Template(shmem.data['template']).substitute(d)
     if shmem.data['srun']:
         work = SRUN_COMMAND + work
 
     if savecmd_file:
-	with open(savecmd_file, 'w') as command_file:
+	with open(p(savecmd_file), 'w') as command_file:
 	    command_file.write(work + "\n")
 
     print "Execution directory currently: " + os.getcwd()
@@ -82,11 +85,10 @@ def worker(json_file):
 	print "dry run of: " + work + "\n"
     else:
 	print "running: " + work + "\n"
-        command_regex = re.compile(r'\s+')
         try:
             #subprocess.call(command_regex.split(work))
-            with open(log_file, 'w') as log:
-                child = subprocess.Popen(command_regex.split(work), stdout=log, stderr=log)
+            with open(p(log_file), 'w') as log:
+                child = subprocess.Popen(shlex.split(work), stdout=log, stderr=log, cwd=p())
                 child.wait()
         except:
             traceback.print_exc(file=sys.stdout)
