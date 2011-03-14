@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
 import sys, os, collections
-sys.path.append(".")
-sys.path.append("..")
 from nestly.nestly import *
 
 homedir = "/cs/researcher/matsen/Overbaugh_J/HIV_Data/"
