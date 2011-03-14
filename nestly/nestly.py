@@ -15,7 +15,7 @@ def _d_to_jsonfile(fname, d):
         ch.write(json.dumps(d, indent=4)+"\n")
 
 def _nvd_to_jsonfile(fname, d):
-    _d_to_jsonfile(fname, dict((k, v.val) for k, v in d.iteritems()))
+    _d_to_jsonfile(fname, dict((k, v[1]) for k, v in d.iteritems()))
 
 def _create_dir(dirname):
     try:
@@ -99,10 +99,10 @@ def _aux_build(control, paraml, wd):
         return
 
     cur, rest = paraml[0], paraml[1:]
-    for nv in control[cur](control):
-        level_control = dict(control, **{cur: nv})
-        if nv.name:
-            level_wd = os.path.join(wd, nv.name)
+    for name, value in control[cur](control):
+        level_control = dict(control, **{cur: (name, value)})
+        if name:
+            level_wd = os.path.join(wd, name)
             _create_dir(level_wd)
         else:
             level_wd = wd
