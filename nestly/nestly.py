@@ -108,8 +108,10 @@ def _aux_build(control, paraml, wd):
             level_wd = wd
         _aux_build(level_control, rest, level_wd)
 
-def build(complete):
-    destdir = complete["destdir"]
+def build(control, destdir):
+    """
+    Creates control.json files suitable for use with nestrun in nested
+    directories.
+    """
     create_dir(destdir)
-    control = complete["control"]
     _aux_build(control, control.keys(), destdir)

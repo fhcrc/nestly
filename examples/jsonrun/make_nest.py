@@ -8,8 +8,8 @@ indir = os.path.join(wd,"prep/some_phy/")
 
 ctl = collections.OrderedDict({})
 
-# now get all of the starters 
+# now get all of the starters
 ctl["infile"] = (lambda(c): map(file_nv, collect_globs(indir, ["*"])))
 
-build({"control": ctl, "destdir": "runs"})
+build(ctl, "runs")
 

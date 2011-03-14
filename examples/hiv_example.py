@@ -3,7 +3,7 @@
 import sys, os, collections
 sys.path.append(".")
 sys.path.append("..")
-from nestly import *
+from nestly.nestly import *
 
 homedir = "/cs/researcher/matsen/Overbaugh_J/HIV_Data/"
 refdir = os.path.join(homedir,"sim/beastly/refs/ag_small/")
@@ -16,5 +16,4 @@ mirror_dir(fragdir, ["is_superinf", "length", "locus"], ctl)
 ctl["ref"] = (lambda(c): [none_nv(refdir+c["locus"].name+".fasta")])
 ctl["frag"] = (lambda(c): map(file_nv, collect_globs(c["locus"].val, ["*.fasta"])))
 
-build({"control" : ctl})
-
+build(ctl, "runs")
