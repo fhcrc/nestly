@@ -23,20 +23,10 @@ Parameter lists
 ===============
 In the main control dictionary, we supply a function which takes the control so far and spits out a list of the next things to use.
 
-
-The following may be useful for constructing such functions:
-
-filter_choices
-  takes a param and a function which specifies filtering on the param under consideration and a control dict
-  it just makes substitutions in the control dict for those values which satisfy the filter function
-
-glob_choices
-  takes a param and a control dict, then offers a way to glob based on the control file
-
-Additional functions are defined in ``nestly/nestly.py``. You're also free to define your own:
+Sample functions for working with file globs are defined in ``nestly/nestly.py``. You're also free to define your own:
 Any function accepting a single argument (the control dictionary), returning an iterable of ``(name, value)`` tuples. 
-The name provided is used to create the nested directory for the parameter choice; the value 
-is what's actually written to the JSON file.
+The name provided becomes the name the nested directory for the parameter choice; the value is what's actually written 
+to the JSON file.
 
 the commonality is that each one makes a directory returns a list of choices for the next param
 the function takes those choices, chdirs, updates the control dictionary, then recurs
