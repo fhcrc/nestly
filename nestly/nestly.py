@@ -6,18 +6,18 @@ import re
 import os
 
 ## internals
-def d_of_jsonfile(fname):
+def _d_of_jsonfile(fname):
     with open(fname, 'r') as ch:
         return json.load(ch)
 
-def d_to_jsonfile(fname, d):
+def _d_to_jsonfile(fname, d):
     with open(fname, 'w') as ch:
         ch.write(json.dumps(d, indent=4)+"\n")
 
-def nvd_to_jsonfile(fname, d):
-    d_to_jsonfile(fname, dict((k, v.val) for k, v in d.iteritems()))
+def _nvd_to_jsonfile(fname, d):
+    _d_to_jsonfile(fname, dict((k, v.val) for k, v in d.iteritems()))
 
-def create_dir(dirname):
+def _create_dir(dirname):
     try:
         os.makedirs(dirname)
     except OSError, e:
@@ -52,7 +52,7 @@ def path_list_of_pathpair(path, filel):
 def nonempty_glob(g):
     globbed = glob.glob(g)
     if not globbed:
-        raise IOError("empty glob: "+g)
+        raise IOError("empty glob: %s" % g)
     return globbed
 
 def collect_globs(path, globl):
@@ -87,15 +87,15 @@ def mirror_dir(start_path, start_paraml, control):
         control[start_paraml[0]] = all_dir_globs(dir_nv, start_path, ["*"])
         aux(start_paraml)
 
-# we choose to strip the extension and then replace all slashes with dashes
 def dirname_of_path(path):
-    (base,_) = os.path.splitext(path)
-    return(re.sub("/","-",base))
+    """Returns the dirname of path, all slashes replaced by dashes."""
+    base = os.path.splitext(path)[0]
+    return base.replace('/', '-')
 
 # the actual recursion
 def _aux_build(control, paraml, wd):
     if not paraml:
-        nvd_to_jsonfile(os.path.join(wd, 'control.json'), control)
+        _nvd_to_jsonfile(os.path.join(wd, 'control.json'), control)
         return
 
     cur, rest = paraml[0], paraml[1:]
@@ -103,7 +103,7 @@ def _aux_build(control, paraml, wd):
         level_control = dict(control, **{cur: nv})
         if nv.name:
             level_wd = os.path.join(wd, nv.name)
-            create_dir(level_wd)
+            _create_dir(level_wd)
         else:
             level_wd = wd
         _aux_build(level_control, rest, level_wd)
@@ -112,6 +112,12 @@ def build(control, destdir):
     """
     Creates control.json files suitable for use with nestrun in nested
     directories.
+
+    control should be a dict where keys map to functions taking
+    a single argument.
+
+    destdir is the output directory for the control.json files,
+    in nested directories. It will be created if it doesn't exist.
     """
-    create_dir(destdir)
+    _create_dir(destdir)
     _aux_build(control, control.keys(), destdir)
