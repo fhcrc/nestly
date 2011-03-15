@@ -24,7 +24,7 @@ Parameter lists
 In the main control dictionary, we supply a function which takes the control so far and spits out a list of the next things to use.
 
 Sample functions for working with file globs are defined in ``nestly/nestly.py``. You're also free to define your own:
-Any function accepting a single argument (the control dictionary), returning an iterable of ``(name, value)`` tuples. 
+Any function accepting a single argument (the control dictionary), returning an iterable of nestly.nestly.NV's
 The name provided becomes the name the nested directory for the parameter choice; the value is what's actually written 
 to the JSON file.
 
