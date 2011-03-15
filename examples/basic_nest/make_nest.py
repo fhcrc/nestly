@@ -15,7 +15,7 @@ def value_range(iterable):
     def inner(ctl):
         for i in iterable:
             val = str(i)
-            yield (val, val)
+            yield nestly.NV(val, val)
     return inner
 
 ctl['strategy'] = value_range(('exhaustive', 'approximate'))
