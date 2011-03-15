@@ -3,6 +3,7 @@ nestly
 ======
 
 Nestly is a collection of functions designed to ease running software with combinatorial choices of parameters.
+It can easily do so for "cartesian products" of parameter choices, but can do much more-- arbitrary "backwards-looking" dependencies can be used.
 
 The vision here is that we take a fixed set of parameters and generate a single type of output for each defined combination, which can then be combined in some way for comparison and retrieval.
 We would like to set things up tidily with nested directories for output reflecting nested parameter choices.
@@ -104,6 +105,7 @@ The control files created then serve as inputs to ``nestrun`` for template subst
           $(find runs -name "control.json")
 
 
+This was a "cartesian product" example, but the meal example exhibits a more complex setup.
 
 Extensions
 ==========
