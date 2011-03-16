@@ -22,7 +22,7 @@ Parameter lists
 ===============
 In the main control dictionary, we supply a function which takes the control dictionary so far and spits out a list of the next things to use.
 
-Sample functions for working with file globs are defined in ``nestly/nestly.py``. You're also free to define your own:
+Some functions for working with file globs are defined in ``nestly/nestly.py``. You're also free to define your own:
 Any function accepting a single argument (the control dictionary), returning an iterable of nestly.nestly.NV's will work.
 The name provided becomes the name the nested directory for the parameter choice; the value is what's actually written to the JSON file.
 
@@ -99,6 +99,15 @@ The control files created then serve as inputs to ``nestrun`` for template subst
 
 
 This was a "cartesian product" example, but the meal example exhibits a more complex setup.
+
+Templates
+=========
+
+``nestrun`` takes a template and a list of control.json files with 
+variables to substitute. By default, substitution is performed using the Python
+built-in str.format method. See http://docs.python.org/library/string.html#formatstrings 
+for details on syntax, and ``examples/jsonrun/do_nestrun.sh`` for an
+example.
 
 Extensions
 ==========
