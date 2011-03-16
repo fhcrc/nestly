@@ -21,7 +21,7 @@ DRYRUN = False                   # Run in dryrun mode, default is False.
 # what is used by default to run template files
 TEMPLATEFILE_RUN_CMD = 'source '
 
-DEFAULT_TEMPLATE_ENGINE = 'stringtemplate'
+DEFAULT_TEMPLATE_ENGINE = 'stringformat'
 
 def invoke(max_procs, data, json_files):
     procs = {}
@@ -129,12 +129,12 @@ def parse_arguments():
     parser.add_argument('--template', dest='template', metavar="'template text'",
                          help='Command-execution template. Must be in single quotes or \
                                $ character pre-pended to $infile must be escaped.')
-    parser.add_argument('--templatefile', dest='template_file', metavar="'template file'",
+    parser.add_argument('--templatefile', dest='template_file', metavar="FILE",
                          help='Command-execution template file path.')
     parser.add_argument('--template-engine', metavar='ENGINE',
                         choices=nestly.template.BACKENDS.keys(),
                         default=DEFAULT_TEMPLATE_ENGINE,
-                        help="Template backend. Choices: %(choices)s\ndefault: %(default)s")
+                        help="Template backend. Choices: [%(choices)s] default: %(default)s")
     parser.add_argument('--savecmdfile', dest='savecmd_file',
                         help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--logfile', dest='log_file', default='log.txt',
