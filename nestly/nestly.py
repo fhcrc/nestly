@@ -56,12 +56,28 @@ def nonempty_glob(g):
     return globbed
 
 def collect_globs(path, globl):
-    return [f for g in path_list_of_pathpair(path, globl) for f in nonempty_glob(g)]
+    return [f for g in path_list_of_pathpair(path, globl)
+            for f in nonempty_glob(g)]
 
 def filter_dir(pathl):
     return [path for path in pathl if os.path.isdir(path)]
 
-# the all_* functions make lambdas that don't do anything interesting with their argument
+def repeat_iterable(iterable):
+    """
+    Returns a function which yields values from iterable as
+    NVs, named str(item), valued item for each item in
+    iterable.
+
+    Note that it must be possible to iterate over the argument
+    multiple times, so generators won't work.
+    """
+    def inner(ctl):
+        for i in iterable:
+            yield NV(str(i), i)
+    return inner
+
+# the all_* functions make lambdas that don't do anything interesting
+# with their argument
 def all_choices(how, path, filel):
     """used when we can list all of the files of interest"""
     return lambda _: map(how, path_list_of_pathpair(path, filel))
