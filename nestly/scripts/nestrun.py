@@ -10,6 +10,7 @@ import sys
 import os
 
 from nestly.nestly import *
+import nestly.template
 
 # Constants to be used as defaults.
 MAX_PROCS = 2                    # Set the default maximum number of child processes that can be spawned.
@@ -20,6 +21,7 @@ DRYRUN = False                   # Run in dryrun mode, default is False.
 # what is used by default to run template files
 TEMPLATEFILE_RUN_CMD = 'source '
 
+DEFAULT_TEMPLATE_ENGINE = 'stringtemplate'
 
 def invoke(max_procs, data, json_files):
     procs = {}
@@ -51,10 +53,13 @@ def invoke(max_procs, data, json_files):
 
 
 # use d to do template substitution on each line of in_file and write the output to out_fobj
-def template_subs_file(in_file, out_fobj, d):
+def template_subs_file(in_file, out_fobj, d, engine):
     with open(in_file, 'r') as in_fobj:
-	for line in in_fobj:
-	    out_fobj.write(Template(line).substitute(d))
+        for line in in_fobj:
+            # Possible TODO: switch to in_fobj.read(), then substitute.
+            # If we want a complicated templater (e.g. Jinja), single line
+            # substitution won't work.
+            out_fobj.write(engine(line, d))
 
 def worker(data, json_file):
     """
@@ -77,25 +82,26 @@ def worker(data, json_file):
     # if a template file is being used, then we write out to it
     template_file = data['template_file']
     if template_file:
-	with open(p(template_file), 'w') as out_fobj:
-	    template_subs_file(template_file, out_fobj, d)
+        with open(p(template_file), 'w') as out_fobj:
+            template_subs_file(template_file, out_fobj, d,
+                               data['renderer'])
 
     # Perform subsitution, prepend 'srun' if necessary.
-    work = Template(data['template']).substitute(d)
+    work = data['renderer'](data['template'], d)
     if data['srun']:
         work = SRUN_COMMAND + work
 
     if savecmd_file:
-	with open(p(savecmd_file), 'w') as command_file:
-	    command_file.write(work + "\n")
+        with open(p(savecmd_file), 'w') as command_file:
+            command_file.write(work + "\n")
 
     print "Execution directory: %s" % (p(),)
 
     # View what actions will take place in dryrun mode.
     if data['dryrun']:
-	print "dry run of: " + work + "\n"
+        print "dry run of: " + work + "\n"
     else:
-	print "running: " + work + "\n"
+        print "running: " + work + "\n"
         try:
             #subprocess.call(command_regex.split(work))
             with open(p(log_file), 'w') as log:
@@ -125,8 +131,14 @@ def parse_arguments():
                                $ character pre-pended to $infile must be escaped.')
     parser.add_argument('--templatefile', dest='template_file', metavar="'template file'",
                          help='Command-execution template file path.')
-    parser.add_argument('--savecmdfile', dest='savecmd_file', help='Name of the file that will contain the command that was executed.')
-    parser.add_argument('--logfile', dest='log_file', default='log.txt', help='Name of the file that will contain the command that was executed.')
+    parser.add_argument('--template-engine', metavar='ENGINE',
+                        choices=nestly.template.BACKENDS.keys(),
+                        default=DEFAULT_TEMPLATE_ENGINE,
+                        help="Template backend. Choices: %(choices)s\ndefault: %(default)s")
+    parser.add_argument('--savecmdfile', dest='savecmd_file',
+                        help='Name of the file that will contain the command that was executed.')
+    parser.add_argument('--logfile', dest='log_file', default='log.txt',
+                        help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
     parser.add_argument('json_files', type=argparse.FileType('r'), nargs='+')
     arguments = parser.parse_args()
@@ -140,12 +152,13 @@ def parse_arguments():
 
     # Make sure that either a template or a template file was given
     if arguments.template_file:
-    # if given a template file, the default is to make a template using TEMPLATEFILE_RUN_CMD
-	template = TEMPLATEFILE_RUN_CMD + arguments.template_file
+        # if given a template file, the default is to make a template using TEMPLATEFILE_RUN_CMD
+        template = TEMPLATEFILE_RUN_CMD + arguments.template_file
+
     if arguments.template:
-	template = arguments.template
+        template = arguments.template
     if not (arguments.template or arguments.template_file):
-	insufficient_args("Error: Please specify either a template or a template file")
+        insufficient_args("Error: Please specify either a template or a template file")
 
     print "template: "+template
 
@@ -159,6 +172,8 @@ def parse_arguments():
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
 
+    template_engine = nestly.template.get_template_engine(arguments.template_engine)
+
 
     # Create a dictionary that will be shared amongst all forked processes.
     data = {}
@@ -169,6 +184,7 @@ def parse_arguments():
     data['template_file'] = arguments.template_file
     data['savecmd_file'] = arguments.savecmd_file
     data['log_file'] = arguments.log_file
+    data['renderer'] = template_engine
 
     return data, max_procs, arguments.json_files
 
