@@ -82,7 +82,8 @@ def worker(data, json_file):
     # if a template file is being used, then we write out to it
     template_file = data['template_file']
     if template_file:
-        with open(p(template_file), 'w') as out_fobj:
+        output_template = p(os.path.basename(template_file))
+        with open(output_template, 'w') as out_fobj:
             template_subs_file(template_file, out_fobj, d,
                                data['renderer'])
 
