@@ -154,7 +154,7 @@ def parse_arguments():
     # Make sure that either a template or a template file was given
     if arguments.template_file:
         # if given a template file, the default is to make a template using TEMPLATEFILE_RUN_CMD
-        template = TEMPLATEFILE_RUN_CMD + arguments.template_file
+        template = TEMPLATEFILE_RUN_CMD + os.path.basename(arguments.template_file)
 
     if arguments.template:
         template = arguments.template
