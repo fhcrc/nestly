@@ -5,6 +5,7 @@ from string import Template
 import subprocess
 import traceback
 import argparse
+import logging
 import shlex
 import sys
 import os
@@ -96,24 +97,21 @@ def worker(data, json_file):
         with open(p(savecmd_file), 'w') as command_file:
             command_file.write(work + "\n")
 
-    print "Execution directory: %s" % (p(),)
-
     # View what actions will take place in dryrun mode.
     if data['dryrun']:
-        print "dry run of: " + work + "\n"
+        logging.info("%s - Dry run of %s\n", p(), work)
     else:
-        print "running: " + work + "\n"
+        logging.info("%s - Running %s\n", p(), work)
         try:
-            #subprocess.call(command_regex.split(work))
             with open(p(log_file), 'w') as log:
-                yield subprocess.Popen(shlex.split(work), stdout=log, stderr=log, cwd=p())
+                yield subprocess.Popen(shlex.split(work), stdout=log,
+                                       stderr=log, cwd=p())
         except:
-            traceback.print_exc(file=sys.stdout)
             # Seems useful to print the command that failed to make the traceback
             # more meaningful.
             # Note that error output could get mixed up if two processes encounter errors
-            # at the same instance.
-            print "Error executing: " + work + "\n"
+            # at the same instant
+            logging.error("%s - Error executing %s\n", p(), work, exc_info=True)
 
 
 def parse_arguments():
@@ -123,6 +121,8 @@ def parse_arguments():
     max_procs = MAX_PROCS
     dryrun = DRYRUN
     srun = SRUN
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout,
+                        format='* %(message)s')
 
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
     parser.add_argument('--local', dest='local_procs', type=int, help='Run a maximum of N processes in parallel locally.')
@@ -161,7 +161,7 @@ def parse_arguments():
     if not (arguments.template or arguments.template_file):
         insufficient_args("Error: Please specify either a template or a template file")
 
-    print "template: "+template
+    logging.info('template: %s', template)
 
     # Grab max procs if specified and whether or not srun will be used.
     if arguments.local_procs is not None:
