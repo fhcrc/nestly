@@ -44,6 +44,7 @@ def invoke(max_procs, data, json_files):
                 procs[proc.pid] = proc, g
 
         pid, _ = os.wait()
+        logging.info("Finished: %d", pid)
         proc, g = procs.pop(pid)
         try:
             g.next()
@@ -104,8 +105,10 @@ def worker(data, json_file):
         logging.info("%s - Running %s\n", p(), work)
         try:
             with open(p(log_file), 'w') as log:
-                yield subprocess.Popen(shlex.split(work), stdout=log,
-                                       stderr=log, cwd=p())
+                p = subprocess.Popen(shlex.split(work), stdout=log,
+                                    stderr=log, cwd=p())
+                logging.info('%s - Started %s with PID %d', p(), work, p.pid)
+                yield p
         except:
             # Seems useful to print the command that failed to make the traceback
             # more meaningful.
