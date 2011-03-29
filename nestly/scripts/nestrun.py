@@ -124,7 +124,7 @@ def parse_arguments():
     dryrun = DRYRUN
     srun = SRUN
     logging.basicConfig(level=logging.INFO, stream=sys.stdout,
-                        format='* %(message)s')
+                        format='%(asctime)s * %(levelname)s * %(message)s')
 
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
     parser.add_argument('--local', dest='local_procs', type=int, help='Run a maximum of N processes in parallel locally.')
