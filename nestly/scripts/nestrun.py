@@ -14,8 +14,6 @@ from nestly.nestly import *
 
 # Constants to be used as defaults.
 MAX_PROCS = 2                    # Set the default maximum number of child processes that can be spawned.
-SRUN = False                     # Whether or not to use srun, default is False and to run locally.
-SRUN_COMMAND = 'srun -p emhigh ' # Specify srun command with any options such as which partition.
 DRYRUN = False                   # Run in dryrun mode, default is False.
 
 # what is used by default to run template files
@@ -117,10 +115,7 @@ def worker(data, json_file):
         with open(output_template, 'w') as out_fobj:
             template_subs_file(template_file, out_fobj, d)
 
-    # Perform subsitution, prepend 'srun' if necessary.
     work = data['template'].format(**d)
-    if data['srun']:
-        work = SRUN_COMMAND + work
 
     if savecmd_file:
         with open(p(savecmd_file), 'w') as command_file:
@@ -159,25 +154,24 @@ def parse_arguments():
     """
     max_procs = MAX_PROCS
     dryrun = DRYRUN
-    srun = SRUN
     logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                         format='%(asctime)s * %(levelname)s * %(message)s')
 
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
-    parser.add_argument('--local', dest='local_procs', type=int, help='Run a maximum of N processes in parallel locally.')
-    parser.add_argument('--srun', dest='srun_procs', type=int, help='Run a maximum of N processes in parallel on a cluster with slurm.')
+    parser.add_argument('--local', dest='local_procs', type=int,
+            help='Run a maximum of N processes in parallel locally.',
+            required=True)
     parser.add_argument('--template', dest='template', metavar="'template text'",
-                         help='Command-execution template. '
-                              'Must be in single quotes or escaped.')
-    parser.add_argument('--templatefile', dest='template_file', metavar="FILE",
-                         help='Command-execution template file path.')
+            help='Command-execution template, e.g. bash {infile}')
     parser.add_argument('--stop-on-error', action='store_true',
             default=False, help="Stop if any process returns non-zero exit "
             "status (default: %(default)s)")
+    parser.add_argument('--templatefile', dest='template_file', metavar="FILE",
+            help='Command-execution template file path.')
     parser.add_argument('--savecmdfile', dest='savecmd_file',
-                        help='Name of the file that will contain the command that was executed.')
+            help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--logfile', dest='log_file', default='log.txt',
-                        help='Name of the file that will contain the command that was executed.')
+            help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
     parser.add_argument('json_files', type=extant_file, nargs='+')
     arguments = parser.parse_args()
@@ -185,9 +179,6 @@ def parse_arguments():
     def insufficient_args(complaint):
         parser.print_help()
         parser.exit(1, "\n"+complaint+"\n")
-
-    if arguments.local_procs is not None and arguments.srun_procs is not None:
-        insufficient_args("Error: --srun and --local are mutually exclusive.")
 
     # Make sure that either a template or a template file was given
     if arguments.template_file:
@@ -201,12 +192,8 @@ def parse_arguments():
 
     logging.info('template: %s', template)
 
-    # Grab max procs if specified and whether or not srun will be used.
     if arguments.local_procs is not None:
         max_procs = arguments.local_procs
-    elif arguments.srun_procs is not None:
-        max_procs = arguments.srun_procs
-        srun = True
 
     if arguments.dryrun is not None:
         dryrun = arguments.dryrun
@@ -214,7 +201,6 @@ def parse_arguments():
     # Create a dictionary that will be shared amongst all forked processes.
     data = {}
     data['dryrun'] = dryrun
-    data['srun'] = srun
     data['start_directory'] = os.getcwd()
     data['template'] = template
     data['template_file'] = arguments.template_file
