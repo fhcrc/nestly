@@ -9,7 +9,10 @@ setup(name = 'nestly',
                      running software with combinatorial choices of parameters easier.',
       author = 'Erick Matsen',
       author_email = 'matsen@fhcrc.org',
-      packages = ['nestly', 'nestly.scripts'],
+      packages=[
+        'nestly', 'nestly.scripts',
+        'nestly.template', 'nestly.template.backend',
+        ],
       scripts = ['nestrun'],
       requires = ['Python (>= 2.7)'],
       )
