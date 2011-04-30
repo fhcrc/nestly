@@ -62,7 +62,7 @@ def collect_globs(path, globl):
 def filter_dir(pathl):
     return [path for path in pathl if os.path.isdir(path)]
 
-def repeat_iterable(iterable):
+def repeat_iterable(iterable, prefix=""):
     """
     Returns a function which yields values from iterable as
     NVs, named str(item), valued item for each item in
@@ -73,7 +73,7 @@ def repeat_iterable(iterable):
     """
     def inner(ctl):
         for i in iterable:
-            yield NV(str(i), i)
+            yield NV(prefix+str(i), i)
     return inner
 
 # the all_* functions make lambdas that don't do anything interesting
