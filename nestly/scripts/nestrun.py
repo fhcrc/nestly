@@ -43,7 +43,7 @@ def invoke(max_procs, data, json_files):
 
         pid, _ = os.wait()
         proc, g = procs.pop(pid)
-        logging.info("[{0}] Finished with {1}", pid, proc.returncode)
+        logging.info("[%s] Finished with %s", pid, proc.returncode)
         try:
             g.next()
         except StopIteration:
