@@ -38,18 +38,41 @@ def invoke(max_procs, data, json_files):
                 proc = g.next()
             except StopIteration:
                 continue
+            except OSError:
+                # OSError thrown when command couldn't be started
+                if data['stop_on_error']:
+                    logging.warn("Stopping all other processes")
+                    for proc, g in procs.values():
+                        proc.terminate()
+                    return
             else:
                 procs[proc.pid] = proc, g
 
-        pid, _ = os.wait()
+        pid, status = os.wait()
+
+        # Pull the actual exit status - high byte of 16-bit number
+        exit_status = status >> 8
         proc, g = procs.pop(pid)
-        logging.info("[%s] Finished with %s", pid, proc.returncode)
+
         try:
             g.next()
         except StopIteration:
             pass
         else:
             raise ValueError('worker generators should only yield once')
+
+        # Check exit status, cancel jobs if stop_on_error specified and
+        # non-zero
+        if exit_status:
+            logging.warn('[%s] Finished with non-zero exit status %s',
+                    pid, exit_status)
+            if data['stop_on_error']:
+                logging.warn("Stopping all other processes")
+                for proc, g in procs.values():
+                    proc.terminate()
+                break
+        else:
+            logging.info("[%s] Finished with %s", pid, exit_status)
 
 
 def template_subs_file(in_file, out_fobj, d):
@@ -103,15 +126,16 @@ def worker(data, json_file):
         try:
             with open(p(log_file), 'w') as log:
                 pr = subprocess.Popen(shlex.split(work), stdout=log,
-                                    stderr=log, cwd=p())
+                                      stderr=log, cwd=p())
                 logging.info('[%d] Started %s in %s', pr.pid, work, p())
                 yield pr
-        except:
+        except Exception, e:
             # Seems useful to print the command that failed to make the traceback
             # more meaningful.
             # Note that error output could get mixed up if two processes encounter errors
             # at the same instant
-            logging.error("%s - Error executing %s\n", p(), work, exc_info=True)
+            logging.error("%s - Error executing %s - %s", p(), work, e)
+            raise e
 
 
 def parse_arguments():
@@ -128,10 +152,13 @@ def parse_arguments():
     parser.add_argument('--local', dest='local_procs', type=int, help='Run a maximum of N processes in parallel locally.')
     parser.add_argument('--srun', dest='srun_procs', type=int, help='Run a maximum of N processes in parallel on a cluster with slurm.')
     parser.add_argument('--template', dest='template', metavar="'template text'",
-                         help='Command-execution template. Must be in single quotes or \
-                               $ character pre-pended to $infile must be escaped.')
+                         help='Command-execution template. '
+                              'Must be in single quotes or escaped.')
     parser.add_argument('--templatefile', dest='template_file', metavar="FILE",
                          help='Command-execution template file path.')
+    parser.add_argument('--stop-on-error', action='store_true',
+            default=False, help="Stop if any process returns non-zero exit "
+            "status (default: %(default)s)")
     parser.add_argument('--savecmdfile', dest='savecmd_file',
                         help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--logfile', dest='log_file', default='log.txt',
@@ -178,6 +205,7 @@ def parse_arguments():
     data['template_file'] = arguments.template_file
     data['savecmd_file'] = arguments.savecmd_file
     data['log_file'] = arguments.log_file
+    data['stop_on_error'] = arguments.stop_on_error
 
     return data, max_procs, arguments.json_files
 
