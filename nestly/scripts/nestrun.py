@@ -22,6 +22,16 @@ DRYRUN = False                   # Run in dryrun mode, default is False.
 TEMPLATEFILE_RUN_CMD = 'bash '
 
 
+def _terminate_procs(procs):
+    """
+    Terminate all processes in the process dictionary
+    """
+    logging.warn("Stopping all remaining processes")
+    for proc, g in procs.values():
+        logging.debug("[%s] SIGTERM", proc.pid)
+        proc.terminate()
+
+
 def invoke(max_procs, data, json_files):
     procs = {}
     files = iter(json_files)
@@ -41,9 +51,7 @@ def invoke(max_procs, data, json_files):
             except OSError:
                 # OSError thrown when command couldn't be started
                 if data['stop_on_error']:
-                    logging.warn("Stopping all other processes")
-                    for proc, g in procs.values():
-                        proc.terminate()
+                    _terminate_procs(procs)
                     return
             else:
                 procs[proc.pid] = proc, g
@@ -67,9 +75,7 @@ def invoke(max_procs, data, json_files):
             logging.warn('[%s] Finished with non-zero exit status %s',
                     pid, exit_status)
             if data['stop_on_error']:
-                logging.warn("Stopping all other processes")
-                for proc, g in procs.values():
-                    proc.terminate()
+                _terminate_procs(procs)
                 break
         else:
             logging.info("[%s] Finished with %s", pid, exit_status)
