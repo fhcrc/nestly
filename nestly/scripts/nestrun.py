@@ -30,6 +30,7 @@ def _terminate_procs(procs):
     for proc, g in procs.values():
         logging.debug("[%s] SIGTERM", proc.pid)
         proc.terminate()
+    sys.exit(1)
 
 
 def invoke(max_procs, data, json_files):
