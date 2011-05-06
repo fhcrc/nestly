@@ -97,9 +97,9 @@ def worker(data, json_file):
     Handle parameter substitution and execute command as child process.
     """
     # PERHAPS TODO: Support either full or relative paths.
-    with json_file:
-        d = json.load(json_file)
-    json_directory = os.path.dirname(json_file.name)
+    with open(json_file) as fp:
+        d = json.load(fp)
+    json_directory = os.path.dirname(json_file)
     def p(*parts):
         return os.path.join(json_directory, *parts)
 
@@ -144,6 +144,14 @@ def worker(data, json_file):
             logging.error("%s - Error executing %s - %s", p(), work, e)
             raise e
 
+def extant_file(x):
+    """
+    'Type' for argparse - checks that file exists but does not open.
+    """
+    if not os.path.exists(x):
+        raise argparse.ArgumentError("{0} does not exist".format(x))
+    return x
+
 
 def parse_arguments():
     """
@@ -171,7 +179,7 @@ def parse_arguments():
     parser.add_argument('--logfile', dest='log_file', default='log.txt',
                         help='Name of the file that will contain the command that was executed.')
     parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
-    parser.add_argument('json_files', type=argparse.FileType('r'), nargs='+')
+    parser.add_argument('json_files', type=extant_file, nargs='+')
     arguments = parser.parse_args()
 
     def insufficient_args(complaint):
