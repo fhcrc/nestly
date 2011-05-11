@@ -1,16 +1,13 @@
-# possible TODOs:
-# - should we make it possible to specify a relative path for template_file?
-
-from string import Template
-import subprocess
-import traceback
 import argparse
 import logging
-import shlex
-import sys
 import os
+import os.path
+import shlex
+import subprocess
+import sys
 
 from nestly.nestly import *
+
 
 # Constants to be used as defaults.
 MAX_PROCS = 2                    # Set the default maximum number of child processes that can be spawned.
