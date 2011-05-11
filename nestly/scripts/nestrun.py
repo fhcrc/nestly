@@ -3,6 +3,7 @@ import logging
 import os
 import os.path
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -111,6 +112,9 @@ def worker(data, json_file):
         output_template = p(os.path.basename(template_file))
         with open(output_template, 'w') as out_fobj:
             template_subs_file(template_file, out_fobj, d)
+
+        # Copy permissions to destination
+        shutil.copymode(template_file, output_template)
 
     work = data['template'].format(**d)
 
