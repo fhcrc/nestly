@@ -14,9 +14,6 @@ from nestly.nestly import *
 MAX_PROCS = 2                    # Set the default maximum number of child processes that can be spawned.
 DRYRUN = False                   # Run in dryrun mode, default is False.
 
-# what is used by default to run template files
-TEMPLATEFILE_RUN_CMD = 'bash '
-
 
 def _terminate_procs(procs):
     """
@@ -183,13 +180,18 @@ def parse_arguments():
 
     # Make sure that either a template or a template file was given
     if arguments.template_file:
-        # if given a template file, the default is to make a template using TEMPLATEFILE_RUN_CMD
-        template = TEMPLATEFILE_RUN_CMD + os.path.basename(arguments.template_file)
+        # if given a template file, the default is to run the input
+        if not arguments.template:
+            template = os.path.join('.',
+                    os.path.basename(arguments.template_file))
+            if not os.access(arguments.template_file, os.X_OK):
+                raise SystemExit(
+                        "{0} is not executable. Specify a template.".format(
+                    arguments.template_file))
 
-    if arguments.template:
-        template = arguments.template
     if not (arguments.template or arguments.template_file):
-        insufficient_args("Error: Please specify either a template or a template file")
+        insufficient_args("Error: Please specify either a template "
+                "or a template file")
 
     logging.info('template: %s', template)
 

@@ -1,1 +1,1 @@
-nestrun --template='echo {input_file} {run_count} {input_file}' $(find runs -name control.json)
+nestrun --local 2 --templatefile echo.sh $(find runs -name control.json)
