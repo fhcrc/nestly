@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import os.path
@@ -6,8 +7,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-
-from nestly.nestly import *
 
 
 # Constants to be used as defaults.
