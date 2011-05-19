@@ -16,7 +16,7 @@ import sys
 
 # Constants to be used as defaults.
 MAX_PROCS = 2                    # Set the default maximum number of child processes that can be spawned.
-DRYRUN = False                   # Run in dryrun mode, default is False.
+DRY_RUN = False                   # Run in dry_run mode, default is False.
 
 
 def _terminate_procs(procs):
@@ -41,6 +41,7 @@ def invoke(max_procs, data, json_files):
             except StopIteration:
                 if not running_procs:
                     write_summary(all_procs, data['summary_file'])
+                    return
                 break
             g = worker(data, json_file)
             try:
@@ -52,6 +53,7 @@ def invoke(max_procs, data, json_files):
                 if data['stop_on_error']:
                     _terminate_procs(running_procs)
                     write_summary(all_procs, data['summary_file'])
+                    return
             else:
                 all_procs.append(proc)
                 running_procs[proc.pid] = proc, g
@@ -83,6 +85,13 @@ def invoke(max_procs, data, json_files):
 
 
 def write_summary(all_procs, summary_file):
+    """
+    Write a summary of all run processes to summary_file in tab-delimited
+    format.
+    """
+    if not summary_file:
+        return
+
     with summary_file:
         writer = csv.writer(summary_file, delimiter='\t', lineterminator='\n')
         writer.writerow(('directory', 'command', 'start_time', 'end_time',
@@ -170,8 +179,8 @@ def worker(data, json_file):
         with open(p(savecmd_file), 'w') as command_file:
             command_file.write(work + "\n")
 
-    # View what actions will take place in dryrun mode.
-    if data['dryrun']:
+    # View what actions will take place in dry_run mode.
+    if data['dry_run']:
         logging.info("%s - Dry run of %s\n", p(), work)
     else:
         try:
@@ -203,34 +212,35 @@ def parse_arguments():
     Grab options and json files.
     """
     max_procs = MAX_PROCS
-    dryrun = DRYRUN
+    dry_run = DRY_RUN
     logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                         format='%(asctime)s * %(levelname)s * %(message)s')
 
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
-    parser.add_argument('--local', dest='local_procs', type=int,
+    parser.add_argument('-j', '--processes', dest='local_procs', type=int,
             help='Run a maximum of N processes in parallel locally.',
-            required=True, default=MAX_PROCS)
+            metavar='N', required=True, default=MAX_PROCS)
     parser.add_argument('--template', dest='template',
             metavar="'template text'", help="""Command-execution template, e.g.
             bash {infile}. By default, nestrun executes the templatefile.""")
     parser.add_argument('--stop-on-error', action='store_true',
             default=False, help="""Terminate remaining processes if any process
             returns non-zero exit status (default: %(default)s)""")
-    parser.add_argument('--templatefile', dest='template_file', metavar="FILE",
+    parser.add_argument('--template-file', dest='template_file', metavar="FILE",
             help='Command-execution template file path.')
-    parser.add_argument('--savecmdfile', dest='savecmd_file',
+    parser.add_argument('--save-cmd-file', dest='savecmd_file',
             help="""Name of the file that will contain the command that was
             executed.""")
-    parser.add_argument('--logfile', dest='log_file', default='log.txt',
+    parser.add_argument('--log-file', dest='log_file', default='log.txt',
             help="""Name of the file that will contain the command that was
             executed.""")
-    parser.add_argument('--dryrun', action='store_true',
-            help="""Run in dryrun mode, does not execute commands.""")
+    parser.add_argument('--dry-run', action='store_true',
+            help="""Dry run mode, does not execute commands.""",
+            default=False)
     parser.add_argument('--summary-file', type=argparse.FileType('w'),
-            default=sys.stdout, help="""Write a summary of the run to
-            SUMMARY_FILE. (default: stdout)""")
-    parser.add_argument('json_files', type=extant_file, nargs='+')
+            help="""Write a summary of the run to the specified file""")
+    parser.add_argument('json_files', type=extant_file, nargs='+',
+            help='Nestly control dictionaries')
     arguments = parser.parse_args()
 
     # Make sure that either a template or a template file was given
@@ -239,6 +249,9 @@ def parse_arguments():
         if not arguments.template:
             template = os.path.join('.',
                     os.path.basename(arguments.template_file))
+
+            # If we're using the default argument, the template must be
+            # executable:
             if not os.access(arguments.template_file, os.X_OK):
                 raise SystemExit(
                         "{0} is not executable. Specify a template.".format(
@@ -253,12 +266,12 @@ def parse_arguments():
     if arguments.local_procs is not None:
         max_procs = arguments.local_procs
 
-    if arguments.dryrun is not None:
-        dryrun = arguments.dryrun
+    if arguments.dry_run is not None:
+        dry_run = arguments.dry_run
 
     # Create a dictionary that will be shared amongst all forked processes.
     data = {}
-    data['dryrun'] = dryrun
+    data['dry_run'] = dry_run
     data['start_directory'] = os.getcwd()
     data['template'] = template
     data['template_file'] = arguments.template_file
