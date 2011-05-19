@@ -75,8 +75,8 @@ def invoke(max_procs, data, json_files):
         # Check exit status, cancel jobs if stop_on_error specified and
         # non-zero
         if exit_status:
-            logging.warn('[%s] Finished with non-zero exit status %s',
-                    pid, exit_status)
+            logging.warn('[%s] %s Finished with non-zero exit status %s',
+                    pid, proc.working_dir, exit_status)
             if data['stop_on_error']:
                 _terminate_procs(running_procs)
                 break
