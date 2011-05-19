@@ -41,6 +41,7 @@ def invoke(max_procs, data, json_files):
             except StopIteration:
                 if not running_procs:
                     write_summary(all_procs, data['summary_file'])
+                    return
                 break
             g = worker(data, json_file)
             try:
@@ -52,6 +53,7 @@ def invoke(max_procs, data, json_files):
                 if data['stop_on_error']:
                     _terminate_procs(running_procs)
                     write_summary(all_procs, data['summary_file'])
+                    return
             else:
                 all_procs.append(proc)
                 running_procs[proc.pid] = proc, g
