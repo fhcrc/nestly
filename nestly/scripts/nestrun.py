@@ -1,4 +1,9 @@
+"""
+nestrun.py - run commands based on control dictionaries.
+"""
 import argparse
+import csv
+import datetime
 import json
 import logging
 import os
@@ -26,15 +31,16 @@ def _terminate_procs(procs):
 
 
 def invoke(max_procs, data, json_files):
-    procs = {}
+    running_procs = {}
+    all_procs = []
     files = iter(json_files)
     while True:
-        while len(procs) < max_procs:
+        while len(running_procs) < max_procs:
             try:
                 json_file = files.next()
             except StopIteration:
-                if not procs:
-                    return
+                if not running_procs:
+                    write_summary(all_procs, data['summary_file'])
                 break
             g = worker(data, json_file)
             try:
@@ -44,16 +50,18 @@ def invoke(max_procs, data, json_files):
             except OSError:
                 # OSError thrown when command couldn't be started
                 if data['stop_on_error']:
-                    _terminate_procs(procs)
-                    return
+                    _terminate_procs(running_procs)
+                    write_summary(all_procs, data['summary_file'])
             else:
-                procs[proc.pid] = proc, g
+                all_procs.append(proc)
+                running_procs[proc.pid] = proc, g
 
         pid, status = os.wait()
 
         # Pull the actual exit status - high byte of 16-bit number
         exit_status = status >> 8
-        proc, g = procs.pop(pid)
+        proc, g = running_procs.pop(pid)
+        proc.complete(exit_status)
 
         try:
             g.next()
@@ -68,10 +76,20 @@ def invoke(max_procs, data, json_files):
             logging.warn('[%s] Finished with non-zero exit status %s',
                     pid, exit_status)
             if data['stop_on_error']:
-                _terminate_procs(procs)
+                _terminate_procs(running_procs)
                 break
         else:
             logging.info("[%s] Finished with %s", pid, exit_status)
+
+
+def write_summary(all_procs, summary_file):
+    with summary_file:
+        writer = csv.writer(summary_file, delimiter='\t', lineterminator='\n')
+        writer.writerow(('directory', 'command', 'start_time', 'end_time',
+            'run_time', 'exit_status', 'result'))
+        rows = ((p.working_dir, ' '.join(p.command), p.start_time, p.end_time,
+                p.running_time, p.return_code, p.status) for p in all_procs)
+        writer.writerows(rows)
 
 
 def template_subs_file(in_file, out_fobj, d):
@@ -82,6 +100,40 @@ def template_subs_file(in_file, out_fobj, d):
     with open(in_file, 'r') as in_fobj:
         for line in in_fobj:
             out_fobj.write(line.format(**d))
+
+
+class NestlyProcess(object):
+    """
+    Metadata about a process run
+    """
+
+    def __init__(self, command, working_dir, popen, log_name='log.txt'):
+        self.command = command
+        self.working_dir = working_dir
+        self.log_name = log_name
+        self.popen = popen
+        self.pid = popen.pid
+        self.return_code = None
+        self.start_time = datetime.datetime.now()
+        self.end_time = None
+        self.status = 'RUNNING'
+
+    def terminate(self):
+        self.popen.terminate()
+        self.end_time = datetime.datetime.now()
+        self.status = 'TERMINATED'
+
+    def complete(self, return_code):
+        self.return_code = return_code
+        self.status = 'COMPLETE' if not return_code else 'FAILED'
+        self.end_time = datetime.datetime.now()
+
+    @property
+    def running_time(self):
+        if self.end_time is None:
+            return None
+
+        return self.end_time - self.start_time
 
 
 def worker(data, json_file):
@@ -95,7 +147,7 @@ def worker(data, json_file):
     def p(*parts):
         return os.path.join(json_directory, *parts)
 
-    # STDOUT and STDERR will be writtne to a log file in each job directory.
+    # STDOUT and STDERR will be written to a log file in each job directory.
     log_file = data['log_file']
 
     # A template file will be written in each job directory, including the
@@ -124,17 +176,18 @@ def worker(data, json_file):
     else:
         try:
             with open(p(log_file), 'w') as log:
-                pr = subprocess.Popen(shlex.split(work), stdout=log,
-                                      stderr=log, cwd=p())
+                cmd = shlex.split(work)
+                pr = subprocess.Popen(cmd, stdout=log, stderr=log, cwd=p())
                 logging.info('[%d] Started %s in %s', pr.pid, work, p())
-                yield pr
+                nestproc = NestlyProcess(cmd, p(), pr)
+                yield nestproc
         except Exception, e:
-            # Seems useful to print the command that failed to make the traceback
-            # more meaningful.
-            # Note that error output could get mixed up if two processes encounter errors
-            # at the same instant
+            # Seems useful to print the command that failed to make the
+            # traceback more meaningful.  Note that error output could get
+            # mixed up if two processes encounter errors at the same instant
             logging.error("%s - Error executing %s - %s", p(), work, e)
             raise e
+
 
 def extant_file(x):
     """
@@ -157,25 +210,28 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
     parser.add_argument('--local', dest='local_procs', type=int,
             help='Run a maximum of N processes in parallel locally.',
-            required=True)
-    parser.add_argument('--template', dest='template', metavar="'template text'",
-            help='Command-execution template, e.g. bash {infile}')
+            required=True, default=MAX_PROCS)
+    parser.add_argument('--template', dest='template',
+            metavar="'template text'", help="""Command-execution template, e.g.
+            bash {infile}. By default, nestrun executes the templatefile.""")
     parser.add_argument('--stop-on-error', action='store_true',
-            default=False, help="Stop if any process returns non-zero exit "
-            "status (default: %(default)s)")
+            default=False, help="""Terminate remaining processes if any process
+            returns non-zero exit status (default: %(default)s)""")
     parser.add_argument('--templatefile', dest='template_file', metavar="FILE",
             help='Command-execution template file path.')
     parser.add_argument('--savecmdfile', dest='savecmd_file',
-            help='Name of the file that will contain the command that was executed.')
+            help="""Name of the file that will contain the command that was
+            executed.""")
     parser.add_argument('--logfile', dest='log_file', default='log.txt',
-            help='Name of the file that will contain the command that was executed.')
-    parser.add_argument('--dryrun', action='store_true', help='Run in dryrun mode, does not execute commands.')
+            help="""Name of the file that will contain the command that was
+            executed.""")
+    parser.add_argument('--dryrun', action='store_true',
+            help="""Run in dryrun mode, does not execute commands.""")
+    parser.add_argument('--summary-file', type=argparse.FileType('w'),
+            default=sys.stdout, help="""Write a summary of the run to
+            SUMMARY_FILE. (default: stdout)""")
     parser.add_argument('json_files', type=extant_file, nargs='+')
     arguments = parser.parse_args()
-
-    def insufficient_args(complaint):
-        parser.print_help()
-        parser.exit(1, "\n"+complaint+"\n")
 
     # Make sure that either a template or a template file was given
     if arguments.template_file:
@@ -189,10 +245,10 @@ def parse_arguments():
                     arguments.template_file))
 
     if not (arguments.template or arguments.template_file):
-        insufficient_args("Error: Please specify either a template "
+        parser.exit("Error: Please specify either a template "
                 "or a template file")
 
-    logging.info('template: %s', template)
+    logging.info('Template: %s', template)
 
     if arguments.local_procs is not None:
         max_procs = arguments.local_procs
@@ -209,9 +265,11 @@ def parse_arguments():
     data['savecmd_file'] = arguments.savecmd_file
     data['log_file'] = arguments.log_file
     data['stop_on_error'] = arguments.stop_on_error
+    data['summary_file'] = arguments.summary_file
 
     return data, max_procs, arguments.json_files
 
 def main():
     data, max_procs, json_files = parse_arguments()
     invoke(max_procs, data, json_files)
+
