@@ -217,7 +217,7 @@ def parse_arguments():
                         format='%(asctime)s * %(levelname)s * %(message)s')
 
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
-    parser.add_argument('-j', '--processes', dest='local_procs', type=int,
+    parser.add_argument('-j', '--processes', '--local', dest='local_procs', type=int,
             help='Run a maximum of N processes in parallel locally.',
             metavar='N', required=True, default=MAX_PROCS)
     parser.add_argument('--template', dest='template',
