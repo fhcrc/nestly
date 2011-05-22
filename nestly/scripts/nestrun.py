@@ -243,6 +243,8 @@ def parse_arguments():
             help='Nestly control dictionaries')
     arguments = parser.parse_args()
 
+    template = arguments.template
+
     # Make sure that either a template or a template file was given
     if arguments.template_file:
         # if given a template file, the default is to run the input
@@ -250,8 +252,7 @@ def parse_arguments():
             template = os.path.join('.',
                     os.path.basename(arguments.template_file))
 
-            # If we're using the default argument, the template must be
-            # executable:
+            # If using the default argument, the template must be executable:
             if not os.access(arguments.template_file, os.X_OK):
                 raise SystemExit(
                         "{0} is not executable. Specify a template.".format(
