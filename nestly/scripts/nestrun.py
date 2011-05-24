@@ -218,8 +218,8 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
     parser.add_argument('-j', '--processes', '--local', dest='local_procs', type=int,
-            help='Run a maximum of N processes in parallel locally.',
-            metavar='N', required=True, default=MAX_PROCS)
+            help="""Run a maximum of N processes in parallel locally (default:
+            %(default)s)""", metavar='N', default=MAX_PROCS)
     parser.add_argument('--template', dest='template',
             metavar="'template text'", help="""Command-execution template, e.g.
             bash {infile}. By default, nestrun executes the templatefile.""")
@@ -253,7 +253,8 @@ def parse_arguments():
                     os.path.basename(arguments.template_file))
 
             # If using the default argument, the template must be executable:
-            if not os.access(arguments.template_file, os.X_OK):
+            if (not os.access(arguments.template_file, os.X_OK) and not
+                    arguments.dry_run):
                 raise SystemExit(
                         "{0} is not executable. Specify a template.".format(
                     arguments.template_file))
