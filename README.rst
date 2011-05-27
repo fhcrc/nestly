@@ -93,7 +93,7 @@ With the final ``control.json`` reading, for example::
 
 The control files created then serve as inputs to ``nestrun`` for template substition, for example::
 
-  nestrun --dryrun ---savecmdfile command.sh \
+  nestrun --dry-run ---save-cmd-file command.sh \
           --template='my_command -s $strategy --count=$run_count $input_file' \
           $(find runs -name "control.json")
 
@@ -103,11 +103,10 @@ This was a "cartesian product" example, but the meal example exhibits a more com
 Templates
 =========
 
-``nestrun`` takes a template and a list of control.json files with 
-variables to substitute. By default, substitution is performed using the Python
-built-in str.format method. See http://docs.python.org/library/string.html#formatstrings 
-for details on syntax, and ``examples/jsonrun/do_nestrun.sh`` for an
-example.
+``nestrun`` takes a template and a list of control.json files with variables to
+substitute. By default, substitution is performed using the Python built-in
+``str.format`` method. See the `Python documentation`_ for details on syntax,
+and ``examples/jsonrun/do_nestrun.sh`` for an example.
 
 Extensions
 ==========
@@ -123,3 +122,4 @@ would need to collapse all of those choices into a single one.
 will make things complex from the database side of things-- rather than a parameter list we have combinations of parameters...
 but we need a complete control param dictionary--
 
+.. _`Python Documentation`: http://docs.python.org/library/string.html#formatstrings
