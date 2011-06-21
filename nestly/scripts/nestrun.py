@@ -81,7 +81,8 @@ def invoke(max_procs, data, json_files):
                 _terminate_procs(running_procs)
                 break
         else:
-            logging.info("[%s] Finished with %s", pid, exit_status)
+            logging.info("[%s] %s Finished with %s", pid, proc.working_dir,
+                    exit_status)
 
 
 def write_summary(all_procs, summary_file):
@@ -216,7 +217,8 @@ def parse_arguments():
     logging.basicConfig(level=logging.INFO, stream=sys.stdout,
                         format='%(asctime)s * %(levelname)s * %(message)s')
 
-    parser = argparse.ArgumentParser(description='jsonrun.py - substitute values into a template and run commands.')
+    parser = argparse.ArgumentParser(description="""nestrun - substitute values
+            into a template and run commands in parallel.""")
     parser.add_argument('-j', '--processes', '--local', dest='local_procs', type=int,
             help="""Run a maximum of N processes in parallel locally (default:
             %(default)s)""", metavar='N', default=MAX_PROCS)
