@@ -50,6 +50,7 @@ def invoke(max_procs, data, json_files):
                 continue
             except OSError:
                 # OSError thrown when command couldn't be started
+                logging.exception("Exception starting %s", json_file)
                 if data['stop_on_error']:
                     _terminate_procs(running_procs)
                     write_summary(all_procs, data['summary_file'])
@@ -172,7 +173,14 @@ def worker(data, json_file):
             template_subs_file(template_file, out_fobj, d)
 
         # Copy permissions to destination
-        shutil.copymode(template_file, output_template)
+        try:
+            shutil.copymode(template_file, output_template)
+        except OSError, e:
+            if e.errno == 1:
+                logging.warn("Couldn't copy permissions to %s: %s",
+                        output_template, e)
+            else:
+                raise
 
     work = data['template'].format(**d)
 
