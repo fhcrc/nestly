@@ -1,4 +1,5 @@
 import collections
+import itertools
 import errno
 import glob
 import json
@@ -62,7 +63,7 @@ def collect_globs(path, globl):
 def filter_dir(pathl):
     return [path for path in pathl if os.path.isdir(path)]
 
-def repeat_iterable(iterable, prefix=""):
+def repeat_iterable(iterable, prefix="", labels=None):
     """
     Returns a function which yields values from iterable as
     NVs, named str(item), valued item for each item in
@@ -71,9 +72,13 @@ def repeat_iterable(iterable, prefix=""):
     Note that it must be possible to iterate over the argument
     multiple times, so generators won't work.
     """
+    if labels is None:
+        labels = itertools.repeat(None)
     def inner(ctl):
-        for i in iterable:
-            yield NV(prefix+str(i), i)
+        for name, val in itertools.izip(labels, iterable):
+            if name is None:
+                name = prefix + str(val)
+            yield NV(name, val)
     return inner
 
 # the all_* functions make lambdas that don't do anything interesting
