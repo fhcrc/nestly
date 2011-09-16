@@ -227,9 +227,9 @@ def parse_arguments():
 
     parser = argparse.ArgumentParser(description="""nestrun - substitute values
             into a template and run commands in parallel.""")
-    parser.add_argument('-j', '--processes', '--local', dest='local_procs', type=int,
-            help="""Run a maximum of N processes in parallel locally (default:
-            %(default)s)""", metavar='N', default=MAX_PROCS)
+    parser.add_argument('-j', '--processes', '--local', dest='local_procs',
+            type=int, help="""Run a maximum of N processes in parallel locally
+            (default: %(default)s)""", metavar='N', default=MAX_PROCS)
     parser.add_argument('--template', dest='template',
             metavar="'template text'", help="""Command-execution template, e.g.
             bash {infile}. By default, nestrun executes the templatefile.""")
@@ -243,14 +243,13 @@ def parse_arguments():
             executed.""")
     log_group = parser.add_mutually_exclusive_group()
     log_group.add_argument('--log-file', dest='log_file', default='log.txt',
-            help="""Name of the file that will contain the command that was
-            executed.""")
+            help="""Name of the file that will contain output of the executed
+            command.""")
     log_group.add_argument('--no-log', dest="log_file", action="store_const",
             default='log.txt', const=os.devnull, help="""Don't create a log
             file""")
-    parser.add_argument('--dry-run', action='store_true',
-            help="""Dry run mode, does not execute commands.""",
-            default=False)
+    parser.add_argument('--dry-run', action='store_true', help="""Dry run mode,
+            does not execute commands.""", default=False)
     parser.add_argument('--summary-file', type=argparse.FileType('w'),
             help="""Write a summary of the run to the specified file""")
     parser.add_argument('json_files', type=extant_file, nargs='+',
