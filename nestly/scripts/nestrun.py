@@ -241,9 +241,13 @@ def parse_arguments():
     parser.add_argument('--save-cmd-file', dest='savecmd_file',
             help="""Name of the file that will contain the command that was
             executed.""")
-    parser.add_argument('--log-file', dest='log_file', default='log.txt',
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument('--log-file', dest='log_file', default='log.txt',
             help="""Name of the file that will contain the command that was
             executed.""")
+    log_group.add_argument('--no-log', dest="log_file", action="store_const",
+            default='log.txt', const=os.devnull, help="""Don't create a log
+            file""")
     parser.add_argument('--dry-run', action='store_true',
             help="""Dry run mode, does not execute commands.""",
             default=False)
