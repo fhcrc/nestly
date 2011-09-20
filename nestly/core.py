@@ -75,7 +75,8 @@ class Nest(object):
                     else:
                         ctl[n.name] = r
 
-                    new_dirs = dirs + [str(r)] if n.create_dir else dirs
+                    new_dirs = (dirs + [n.label_func(r)] if n.create_dir
+                                else dirs[:])
                     for d, c in inner(ctl, nestables[1:], new_dirs):
                         yield d, c
             else:
@@ -92,7 +93,7 @@ class Nest(object):
                 json.dump(d, fp, indent=self.indent)
 
     def add_level(self, name, nestable, create_dir=True, update=False,
-            label_func=None):
+            label_func=str):
         """
         Add a level to the nest
 
