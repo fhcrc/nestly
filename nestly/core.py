@@ -87,10 +87,11 @@ class Nest(object):
 
     def build(self, dest_dir="runs"):
 
-        for d, control in self:
+        for d, control in self.iter(dest_dir):
+            d = os.path.join(dest_dir, d)
             _mkdirs(d)
             with open(os.path.join(d, self.control_name), 'w') as fp:
-                json.dump(d, fp, indent=self.indent)
+                json.dump(control, fp, indent=self.indent)
 
     def add_level(self, name, nestable, create_dir=True, update=False,
             label_func=str):
