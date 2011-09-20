@@ -2,7 +2,6 @@
 This is nestly core
 """
 import collections
-import itertools
 import json
 import os
 import sys
@@ -33,6 +32,13 @@ def _is_iter(iterable):
 class Nest(object):
     """
     Core nestly object
+
+    :param control_name: Name JSON file to be created in each leaf
+    :param indent: Indentation level in json file
+    :param fail_on_clash: Error if a nest level attempts to overwrite a
+        previous value
+    :param warn_on_clash: Print a warning if a nest level attempts ot overwrite
+        a previous value
     """
     def __init__(self, control_name="control.json", indent=2,
             fail_on_clash=False, warn_on_clash=True):
