@@ -60,3 +60,14 @@ class SimpleNestTestCase(unittest.TestCase):
                     d = json.load(fp)
                 self.assertEqual(expected[a], d)
 
+class IsIterTestCase(unittest.TestCase):
+
+    def test_list(self):
+        self.assertTrue(core._is_iter([1, 2, 3]))
+
+    def test_generator(self):
+        g = (i for i in xrange(4))
+        self.assertTrue(core._is_iter(g))
+
+        # Can't consume
+        self.assertEqual([0, 1, 2, 3], list(g))

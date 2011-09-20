@@ -23,6 +23,9 @@ _Nestable = collections.namedtuple('Nestable', ('name', 'nestable',
                                                'label_func'))
 
 def _is_iter(iterable):
+    """
+    Returns whether an item is iterable or not
+    """
     try:
         iter(iterable)
         return True
