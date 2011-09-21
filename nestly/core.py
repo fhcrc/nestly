@@ -15,7 +15,7 @@ def _mkdirs(d):
     try:
         os.makedirs(d)
     except OSError, e:
-        if e.errno != 13:
+        if e.errno != 17:
             raise
 
 _Nestable = collections.namedtuple('Nestable', ('name', 'nestable',
