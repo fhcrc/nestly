@@ -21,8 +21,8 @@ class SimpleNestTestCase(unittest.TestCase):
 
     def setUp(self):
         nest = core.Nest()
-        nest.add_level("number", (1, 10))
-        nest.add_level("name", ("a", "b"))
+        nest.add("number", (1, 10))
+        nest.add("name", ("a", "b"))
         self.nest = nest
         self.expected =  [('1/a', {'name': 'a', 'number': 1}),
                           ('1/b', {'name': 'b', 'number': 1}),

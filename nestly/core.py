@@ -108,7 +108,7 @@ class Nest(object):
                 # RJSON and some other tools like a trailing newline
                 fp.write('\n')
 
-    def add_level(self, name, nestable, create_dir=True, update=False,
+    def add(self, name, nestable, create_dir=True, update=False,
             label_func=str):
         """
         Add a level to the nest
