@@ -51,7 +51,7 @@ class Nest(object):
         self.warn_on_clash = warn_on_clash
         self._levels = []
 
-    def iter(self, base_dir=''):
+    def iter(self, root=''):
         def inner(control, nestables, dirs=None):
             #FIXME: This is messy
             if not dirs:
@@ -90,17 +90,23 @@ class Nest(object):
                         yield d, c
             else:
                 # At leaf node
-                yield os.path.join(base_dir, *dirs), control
+                yield os.path.join(root, *dirs), control
 
         return inner({}, self._levels[:])
 
-    def build(self, dest_dir="runs"):
+    def build(self, root="runs"):
+        """
+        Build a nested directory structure
 
-        for d, control in self.iter(dest_dir):
-            d = os.path.join(dest_dir, d)
+        :param root: Root directory for structure
+        """
+
+        for d, control in self.iter(root):
             _mkdirs(d)
             with open(os.path.join(d, self.control_name), 'w') as fp:
                 json.dump(control, fp, indent=self.indent)
+                # RJSON and some other tools like a trailing newline
+                fp.write('\n')
 
     def add_level(self, name, nestable, create_dir=True, update=False,
             label_func=str):

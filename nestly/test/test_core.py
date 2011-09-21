@@ -71,3 +71,8 @@ class IsIterTestCase(unittest.TestCase):
 
         # Can't consume
         self.assertEqual([0, 1, 2, 3], list(g))
+
+    def test_non_iterable(self):
+        non_iters = [False, True, 9, 4.5, object()]
+        for i in non_iters:
+            self.assertFalse(core._is_iter(i))
