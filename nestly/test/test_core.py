@@ -60,6 +60,32 @@ class SimpleNestTestCase(unittest.TestCase):
                     d = json.load(fp)
                 self.assertEqual(expected[a], d)
 
+
+class UpdateTestCase(unittest.TestCase):
+
+    def test_update(self):
+        nest = core.Nest()
+        values = [{'number': 1, 'description': 'one'},
+                  {'number': 2, 'description': 'two'}]
+        nest.add("number", values, update=True)
+        actual = list(nest.iter())
+        expected = zip(('1', '2'), values)
+        self.assertEqual(expected, actual)
+
+    def test_update_nokey(self):
+        nest = core.Nest()
+        nest.add("number", [{'description': 'one'}], update=True)
+        self.assertRaises(KeyError, list, nest.iter())
+
+    def test_update_overwrite(self):
+        nest = core.Nest(fail_on_clash=True)
+        nest.add("description", ['Test'])
+        values = [{'number': 1, 'description': 'one'},
+                  {'number': 2, 'description': 'two'}]
+        nest.add("number", values, update=True)
+        self.assertRaises(KeyError, list, nest.iter())
+
+
 class IsIterTestCase(unittest.TestCase):
 
     def test_list(self):
