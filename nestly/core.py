@@ -1,6 +1,7 @@
 """
-This is nestly core
+Core functions for building nests.
 """
+
 import collections
 import errno
 import json
@@ -35,7 +36,12 @@ def _is_iter(iterable):
 
 class Nest(object):
     """
-    Core nestly object
+    Nests are used to build nested parameter selections, culminating in a
+    directory structure representing choices made, and a JSON dictionary with
+    all selections.
+
+    Build parameter combinations with :meth:`Nest.add`, then create a nested
+    directory structure with :meth:`Nest.build`.
 
     :param control_name: Name JSON file to be created in each leaf
     :param indent: Indentation level in json file
@@ -43,16 +49,26 @@ class Nest(object):
         previous value
     :param warn_on_clash: Print a warning if a nest level attempts ot overwrite
         a previous value
+    :param base_dict: Base dictionary to start all control dictionaries from
+        (default: ``{}``)
     """
     def __init__(self, control_name="control.json", indent=2,
-            fail_on_clash=False, warn_on_clash=True):
+            fail_on_clash=False, warn_on_clash=True, base_dict=None):
         self.control_name = control_name
         self.indent = indent
         self.fail_on_clash = fail_on_clash
         self.warn_on_clash = warn_on_clash
         self._levels = []
+        self.base_dict = base_dict or {}
 
-    def iter(self, root=''):
+    def iter(self, root=None):
+        """
+        Create an iterator of (directory, control_dict) tuples for all valid
+        parameter choices in this :class:`Nest`.
+
+        :param root: Root directory
+        :rtype: Generator of ``(directory, control_dictionary)`` tuples.
+        """
         def inner(control, nestables, dirs=None):
             #FIXME: This is messy
             if not dirs:
@@ -91,13 +107,13 @@ class Nest(object):
                         yield d, c
             else:
                 # At leaf node
-                yield os.path.join(root, *dirs), control
+                yield os.path.join(root or '', *dirs), control
 
-        return inner({}, self._levels[:])
+        return inner(self.base_dict, self._levels[:])
 
     def build(self, root="runs"):
         """
-        Build a nested directory structure
+        Build a nested directory structure, starting in ``root``
 
         :param root: Root directory for structure
         """
