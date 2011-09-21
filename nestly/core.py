@@ -2,6 +2,7 @@
 This is nestly core
 """
 import collections
+import errno
 import json
 import os
 import sys
@@ -15,7 +16,7 @@ def _mkdirs(d):
     try:
         os.makedirs(d)
     except OSError, e:
-        if e.errno != 17:
+        if e.errno != errno.EEXIST:
             raise
 
 _Nestable = collections.namedtuple('Nestable', ('name', 'nestable',
