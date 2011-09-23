@@ -22,7 +22,14 @@ input file any file matching inputs/file*
 
 For this we can write a little ``make_nest.py``. The guts are::
 
-    # TODO: FILL
+    nest = Nest()
+
+    nest.add('strategy', ('exhaustive', 'approximate'))
+    nest.add('run_count', [10**i for i in xrange(3)])
+    nest.add('input_file', glob.glob(os.path.join(input_dir, 'file*')),
+            label_func=os.path.basename)
+
+    nest.build('runs')
 
 Running ``make_nest.py``, you get a directory tree like::
 
