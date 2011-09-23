@@ -74,12 +74,12 @@ def repeat_iterable(iterable, prefix="", labels=None):
     """
     if labels is None:
         labels = itertools.repeat(None)
-    def inner(ctl):
+    def rep_iter(ctl):
         for name, val in itertools.izip(labels, iterable):
             if name is None:
                 name = prefix + str(val)
             yield NV(name, val)
-    return inner
+    return rep_iter
 
 # the all_* functions make lambdas that don't do anything interesting
 # with their argument
