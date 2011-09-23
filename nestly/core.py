@@ -7,6 +7,7 @@ import errno
 import json
 import os
 import sys
+import warnings
 
 def _mkdirs(d):
     """
@@ -33,6 +34,11 @@ def _is_iter(iterable):
         return True
     except TypeError:
         return False
+
+def _repeat_iter(iterable):
+    def repeat_iter(ctl):
+        return iterable
+    return repeat_iter
 
 class Nest(object):
     """
@@ -149,8 +155,11 @@ class Nest(object):
         if not callable(nestable):
             if not _is_iter(nestable):
                 raise ValueError("Invalid nestable: " + str(nestable))
+            if isinstance(nestable, basestring):
+                warnings.warn(
+                        "Passed a string as an iterable for name {0}".format(name))
             old_nestable = nestable
-            nestable = lambda _: old_nestable
+            nestable = _repeat_iter(old_nestable)
         self._levels.append(_Nestable(name, nestable, create_dir, update,
                                       label_func))
 
