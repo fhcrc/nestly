@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-import collections
-import json
 import glob
 import os
 import os.path
-import sys
 
 from nestly import Nest
 
@@ -40,6 +37,7 @@ nest.add('wine', glob.glob(os.path.join(winedir, '*.tasty')),
     label_func=strip_bn)
 ## the wineglasses should be chosen by the wine choice, but we don't want to
 ## make a directory for those.
-nest.add('wineglass', lambda c: c['wine'] + ' wine glasses', create_dir=False)
+nest.add('wineglass', lambda c: [strip_bn(c['wine']) + ' wine glasses'],
+        create_dir=False)
 
 nest.build('runs')
