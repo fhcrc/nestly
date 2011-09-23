@@ -5,6 +5,7 @@ import os.path
 import unittest
 import tempfile
 import shutil
+import warnings
 
 from nestly import core
 
@@ -59,6 +60,12 @@ class SimpleNestTestCase(unittest.TestCase):
                 with open(a) as fp:
                     d = json.load(fp)
                 self.assertEqual(expected[a], d)
+
+    def test_stringiter_warning(self):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            self.nest.add('string', 'value')
+            self.assertEqual(1, len(w))
 
 
 class UpdateTestCase(unittest.TestCase):
