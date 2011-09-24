@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 
-import sys, os, collections
-from nestly.nestly import *
+import collections
+import glob
+import os.path
+
+from nestly import Nest
 
 wd = os.getcwd()
 indir = os.path.join(wd,"prep/some_phy/")
 
-ctl = collections.OrderedDict({})
+nest = Nest()
 
-# now get all of the starters
-ctl["infile"] = (lambda(c): map(file_nv, collect_globs(indir, ["*"])))
+nest.add('infile', glob.glob(os.path.join(indir, '*')),
+        label_func=os.path.basename)
 
-build(ctl, "runs")
-
+nest.build()

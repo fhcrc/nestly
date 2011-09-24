@@ -8,29 +8,7 @@ It can easily do so for "cartesian products" of parameter choices, but can do mu
 The vision here is that we take a fixed set of parameters and generate a single type of output for each defined combination, which can then be combined in some way for comparison and retrieval.
 We would like to set things up tidily with nested directories for output reflecting nested parameter choices.
 
-Note that a fixed set of parameters is not the only way to go, and in Extensions_ below we describe a more general setup.
-
-nestly is used with the following steps (see the ``examples/`` directory):
-
-1. Define the argument combinations (see the ``examples/`` directory) to be used in the runs.
-   This usually consists of building an OrderedDict of parameter choices, then passing it to ``nestly.nestly.build``
-2. Nestly creates a (nested) directory structure for the output, where leaf nodes have JSON files detailing parameters chosen.
-3. Define a command or script to be run using variables for the parameter choices to be substituted at each node.
-4. Run ``nestrun``. This substitutes the values from each control file to create the commands to be run and, optionally, runs them.
-
-Parameter lists
-===============
-In the main control dictionary, we supply a function which takes the control dictionary so far and spits out a list of the next things to use.
-
-Some functions for working with file globs are defined in ``nestly/nestly.py``. You're also free to define your own:
-Any function accepting a single argument (the control dictionary), returning an iterable of nestly.nestly.NV's will work.
-The name provided becomes the name the nested directory for the parameter choice; the value is what's actually written to the JSON file.
-
-
-Example
--------
-
-Mirroring the code in ``examples/basic_nest/make_nest.py``: imagine you want run a command with all combinations of the following parameters:
+Imagine you'd like to try all possible variations of the following:
 
 ========== ==============================
 Option     Choices
@@ -44,9 +22,14 @@ input file any file matching inputs/file*
 
 For this we can write a little ``make_nest.py``. The guts are::
 
-  ctl['strategy'] = nestly.repeat_iterable(('exhaustive', 'approximate'))
-  ctl['run_count'] = nestly.repeat_iterable([10**(i + 1) for i in xrange(3)])
-  ctl['input_file'] = lambda x: map(nestly.file_nv, nestly.collect_globs(input_dir, ['file*']))
+    nest = Nest()
+
+    nest.add('strategy', ('exhaustive', 'approximate'))
+    nest.add('run_count', [10**i for i in xrange(3)])
+    nest.add('input_file', glob.glob(os.path.join(input_dir, 'file*')),
+            label_func=os.path.basename)
+
+    nest.build('runs')
 
 Running ``make_nest.py``, you get a directory tree like::
 
@@ -107,19 +90,5 @@ Templates
 substitute. By default, substitution is performed using the Python built-in
 ``str.format`` method. See the `Python documentation`_ for details on syntax,
 and ``examples/jsonrun/do_nestrun.sh`` for an example.
-
-Extensions
-==========
-
-Parameter trees
----------------
-One natural extension of a list is a tree.
-
-If there are some types of simulation which require different number of parameter choices.
-for example, say we had a no rate var sim and a rate var sim.
-would need to collapse all of those choices into a single one.
-
-will make things complex from the database side of things-- rather than a parameter list we have combinations of parameters...
-but we need a complete control param dictionary--
 
 .. _`Python Documentation`: http://docs.python.org/library/string.html#formatstrings

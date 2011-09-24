@@ -5,6 +5,11 @@ import glob
 import json
 import re
 import os
+import warnings
+
+warnings.warn("The nestly.nestly module is deprecated. "
+        "Migrate code to the api provided by nestly.core")
+
 
 ## internals
 def _d_of_jsonfile(fname):
