@@ -20,6 +20,7 @@ Contents:
 
    nestly
    modules
+   examples
 
 Indices and tables
 ==================
