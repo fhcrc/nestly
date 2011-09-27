@@ -4,6 +4,7 @@ Core functions for building nests.
 
 import collections
 import errno
+import functools
 import json
 import os
 import sys
@@ -39,6 +40,16 @@ def _repeat_iter(iterable):
     def repeat_iter(ctl):
         return iterable
     return repeat_iter
+
+def _templated(fn):
+    """
+    Returns a function which applies ``str.format(**ctl)`` to all results of
+    ``fn(ctl)``.
+    """
+    @functools.wraps(fn)
+    def inner(ctl):
+        return [i.format(**ctl) for i in fn(ctl)]
+    return inner
 
 class Nest(object):
     """
@@ -80,7 +91,7 @@ class Nest(object):
             if not dirs:
                 dirs = []
             if nestables:
-                # Still more nestables to consume...
+                # Still more nestables to consume.
                 n = nestables[0]
 
                 result = n.nestable(control)
@@ -132,7 +143,7 @@ class Nest(object):
                 fp.write('\n')
 
     def add(self, name, nestable, create_dir=True, update=False,
-            label_func=str):
+            label_func=str, template_subs=False):
         """
         Add a level to the nest
 
@@ -150,6 +161,9 @@ class Nest(object):
             returned.
         :param label_func: Function to be called to convert each value to a
             directory label.
+        :param boolean template_subs: Should the strings in / returned by
+            nestable be treated as templates? If true, str.format is called
+            with the current values of the control dictionary.
         """
         # Convert everything to functions
         if not callable(nestable):
@@ -160,6 +174,8 @@ class Nest(object):
                         "Passed a string as an iterable for name {0}".format(name))
             old_nestable = nestable
             nestable = _repeat_iter(old_nestable)
+        if template_subs:
+            nestable = _templated(nestable)
         self._levels.append(_Nestable(name, nestable, create_dir, update,
                                       label_func))
 

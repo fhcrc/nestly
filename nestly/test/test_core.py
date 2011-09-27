@@ -68,6 +68,21 @@ class SimpleNestTestCase(unittest.TestCase):
             self.assertEqual(1, len(w))
 
 
+class TemplateTestCase(unittest.TestCase):
+    """
+    Test template substitution
+    """
+    def test_template(self):
+        nest = core.Nest()
+        nest.add('number', [1, 2])
+        nest.add('dirname', ['number-{number}'], template_subs=True,
+                create_dir=False)
+        actual = list(nest.iter())
+        expected = [('1', {'dirname': 'number-1', 'number': 1}),
+                    ('2', {'dirname': 'number-2', 'number': 2})]
+        self.assertEqual(expected, actual)
+
+
 class UpdateTestCase(unittest.TestCase):
 
     def test_update(self):
