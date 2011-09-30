@@ -1,0 +1,10 @@
+dev
+===
+
+
+0.2.0
+=====
+
+* Deprecated nestly.nestly
+* New object-oriented API in nestly.core
+* Updated examples
