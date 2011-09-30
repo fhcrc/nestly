@@ -7,8 +7,17 @@ import errno
 import functools
 import json
 import os
+import os.path
 import sys
 import warnings
+
+def stripext(path):
+    """
+    Return the basename, minus extension, of a path.
+
+    :param string path: Path to file
+    """
+    return os.path.basename(os.path.splitext(path)[0])
 
 def _mkdirs(d):
     """
@@ -76,7 +85,7 @@ class Nest(object):
         self.fail_on_clash = fail_on_clash
         self.warn_on_clash = warn_on_clash
         self._levels = []
-        self.base_dict = base_dict or {}
+        self.base_dict = base_dict or collections.OrderedDict()
 
     def iter(self, root=None):
         """
@@ -178,4 +187,21 @@ class Nest(object):
             nestable = _templated(nestable)
         self._levels.append(_Nestable(name, nestable, create_dir, update,
                                       label_func))
+
+    @classmethod
+    def mirror(cls, directory, control_name='control.json'):
+        """
+        Build a Nest from a directory already containing control.json files.
+
+        :param string directory: Base Directory
+        :param string control_name: Name of json files in subdirectories
+        """
+        control_files = [(parent, f) for parent, _, files in os.walk(directory)
+                    for f in files if f == control_name]
+        for control_file in control_files:
+            with open(control_file) as fp:
+                control = json.load(fp, object_hook=collections.OrderedDict)
+                rev_control = dict(zip(control.values(), control.keys()))
+                split_path = parent[len(directory):].split('/')
+
 
