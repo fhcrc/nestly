@@ -9,3 +9,10 @@ scripts Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`nestagg` Module
+---------------------
+
+.. automodule:: nestly.scripts.nestagg
+    :members:
+    :undoc-members:
+    :show-inheritance:
