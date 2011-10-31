@@ -2,6 +2,7 @@
 nestrun.py - run commands based on control dictionaries.
 """
 import argparse
+import collections
 import csv
 import datetime
 import json
@@ -76,8 +77,8 @@ def invoke(max_procs, data, json_files):
         # Check exit status, cancel jobs if stop_on_error specified and
         # non-zero
         if exit_status:
-            logging.warn('[%s] %s Finished with non-zero exit status %s',
-                    pid, proc.working_dir, exit_status)
+            logging.warn('[%s] %s Finished with non-zero exit status %s\n%s',
+                    pid, proc.working_dir, exit_status, proc.log_tail())
             if data['stop_on_error']:
                 _terminate_procs(running_procs)
                 break
@@ -148,6 +149,16 @@ class NestlyProcess(object):
             return None
 
         return self.end_time - self.start_time
+
+    def log_tail(self, nlines=10):
+        """
+        Return the last ``nlines`` lines of the log file
+        """
+        log_path = os.path.join(self.working_dir, self.log_name)
+        with open(log_path) as fp:
+            d = collections.deque(maxlen=nlines)
+            d.extend(fp)
+            return ''.join(d)
 
 
 def worker(data, json_file):
