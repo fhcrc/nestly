@@ -12,6 +12,7 @@ import json
 import sys
 
 DEFAULT_SEP = ','
+DEFAULT_NAME = 'control.json'
 
 # JSON loaders returning OrderedDicts
 _ordered_load = functools.partial(json.load,
@@ -19,13 +20,21 @@ _ordered_load = functools.partial(json.load,
 _ordered_loads = functools.partial(json.loads,
                                    object_pairs_hook=collections.OrderedDict)
 
-def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP):
+def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP,
+                 control_name=DEFAULT_NAME):
     """
-    Accumulator for delimited files - combine each file
+    Accumulator for delimited files
+
+    Combines each file with values from JSON dictionary in same directory
+
+    :param iterable delimited_files: Iterable of delimited files
+    :param keys: List of keys to select from JSON dictionary. If ``None``, keep all
+                keys.
+    :param separator: Delimiter
     """
     for f in delimited_files:
         dn = os.path.dirname(f)
-        with open(os.path.join(dn, 'control.json')) as fp:
+        with open(os.path.join(dn, control_name)) as fp:
             control = _ordered_load(fp)
 
         keys = frozenset(keys or control.keys())
@@ -43,6 +52,8 @@ def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP):
 def delim(arguments):
     """
     Execute delim action.
+
+    :param arguments: Parsed command line arguments from :func:`main`
     """
     with arguments.output as fp:
         results = _delim_accum(arguments.delimited_files, arguments.keys,
@@ -54,6 +65,9 @@ def delim(arguments):
         writer.writerows(results)
 
 def main(args=sys.argv[1:]):
+    """
+    Command-line interface for nestagg
+    """
     parser = argparse.ArgumentParser(description="""Accumulate results of
             nestly runs""")
     subparsers = parser.add_subparsers()
