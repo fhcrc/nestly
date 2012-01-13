@@ -121,7 +121,8 @@ class NestlyProcess(object):
     Metadata about a process run
     """
 
-    def __init__(self, command, working_dir, popen, log_name='log.txt'):
+    def __init__(self, control, command, working_dir, popen, log_name='log.txt'):
+        self.control = control
         self.command = command
         self.working_dir = working_dir
         self.log_name = log_name
@@ -212,7 +213,7 @@ def worker(data, control):
                 cmd = shlex.split(work)
                 pr = subprocess.Popen(cmd, stdout=log, stderr=log, cwd=p())
                 logging.info('[%d] Started %s in %s', pr.pid, work, p())
-                nestproc = NestlyProcess(cmd, p(), pr)
+                nestproc = NestlyProcess(control, cmd, p(), pr)
                 yield nestproc
         except Exception, e:
             # Seems useful to print the command that failed to make the
@@ -310,7 +311,6 @@ def yaml_template_loader(yaml):
     for k, v in yaml.iteritems():
         all_keys = {k}.union(v.get('deps', []))
         key_pairs.append((all_keys, v))
-    print key_pairs
     def loader(d, control):
         d_keys = set(d)
         d = next((v for k, v in key_pairs if k == d_keys), None)
