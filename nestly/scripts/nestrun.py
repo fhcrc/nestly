@@ -255,12 +255,12 @@ def control_key(path):
     splut[-1] = splut[-1] == 'control.json'
     return splut
 
-def organize_files(json_files):
+def organize_files(json_files, template_loader=None):
     json_files.sort(key=control_key)
     controls = []
     parent_stack = []
     for json_file in json_files:
-        control = ControlFile(json_file)
+        control = ControlFile(json_file, template_loader)
         controls.append(control)
         if not parent_stack:
             parent_stack.append(control)
