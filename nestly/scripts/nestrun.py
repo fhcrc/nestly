@@ -13,6 +13,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import yaml
 
 
 # Constants to be used as defaults.
@@ -31,27 +32,28 @@ def _terminate_procs(procs):
     sys.exit(1)
 
 
-def invoke(max_procs, data, json_files):
+def invoke(max_procs, data, controls):
     running_procs = {}
     all_procs = []
-    files = iter(json_files)
     while True:
         while len(running_procs) < max_procs:
             try:
-                json_file = files.next()
+                control = controls.next()
+            except MoreLater:
+                break
             except StopIteration:
                 if not running_procs:
                     write_summary(all_procs, data['summary_file'])
                     return
                 break
-            g = worker(data, json_file)
+            g = worker(data, control)
             try:
                 proc = g.next()
             except StopIteration:
                 continue
             except OSError:
                 # OSError thrown when command couldn't be started
-                logging.exception("Exception starting %s", json_file)
+                logging.exception("Exception starting %s", control)
                 if data['stop_on_error']:
                     _terminate_procs(running_procs)
                     write_summary(all_procs, data['summary_file'])
@@ -62,10 +64,10 @@ def invoke(max_procs, data, json_files):
 
         pid, status = os.wait()
 
-        # Pull the actual exit status - high byte of 16-bit number
-        exit_status = status >> 8
+        exit_status = os.WEXITSTATUS(status)
         proc, g = running_procs.pop(pid)
         proc.complete(exit_status)
+        controls.done(proc.control)
 
         try:
             g.next()
@@ -161,14 +163,12 @@ class NestlyProcess(object):
             return ''.join(d)
 
 
-def worker(data, json_file):
+def worker(data, control):
     """
     Handle parameter substitution and execute command as child process.
     """
-    # PERHAPS TODO: Support either full or relative paths.
-    with open(json_file) as fp:
-        d = json.load(fp)
-    json_directory = os.path.dirname(json_file)
+    d = control.load()
+    json_directory = os.path.dirname(os.path.abspath(control.path))
     def p(*parts):
         return os.path.join(json_directory, *parts)
 
@@ -180,7 +180,7 @@ def worker(data, json_file):
     savecmd_file = data['savecmd_file']
 
     # if a template file is being used, then we write out to it
-    template_file = data['template_file']
+    template_file = control.template_file
     if template_file:
         output_template = p(os.path.basename(template_file))
         with open(output_template, 'w') as out_fobj:
@@ -197,7 +197,7 @@ def worker(data, json_file):
             else:
                 raise
 
-    work = data['template'].format(**d)
+    work = control.template.format(**d)
 
     if savecmd_file:
         with open(p(savecmd_file), 'w') as command_file:
@@ -219,7 +219,81 @@ def worker(data, json_file):
             # traceback more meaningful.  Note that error output could get
             # mixed up if two processes encounter errors at the same instant
             logging.error("%s - Error executing %s - %s", p(), work, e)
-            raise e
+            raise
+
+
+class ControlFile(object):
+    def __init__(self, path, template_loader=None):
+        self.path = path
+        self.dir = os.path.dirname(path).split(os.sep)
+        self.children = []
+        self.parent = None
+        self.template = None
+        self.template_file = None
+        self.template_loader = template_loader
+
+    def check_parent(self, parent):
+        if len(self.dir) > len(parent.dir) and self.dir[:len(parent.dir)] == parent.dir:
+            if self.parent is None:
+                parent.children.append(self)
+                self.parent = parent
+            return True
+        return False
+
+    def __repr__(self):
+        return '<ControlFile at %#x: %r>' % (id(self), self.path)
+
+    def load(self):
+        with open(self.path) as infile:
+            d = json.load(infile)
+        if self.template_loader:
+            self.template_loader(d, self)
+        return d
+
+def control_key(path):
+    splut = path.split('/')
+    splut[-1] = splut[-1] == 'control.json'
+    return splut
+
+def organize_files(json_files):
+    json_files.sort(key=control_key)
+    controls = []
+    parent_stack = []
+    for json_file in json_files:
+        control = ControlFile(json_file)
+        controls.append(control)
+        if not parent_stack:
+            parent_stack.append(control)
+        else:
+            while parent_stack and not control.check_parent(parent_stack[-1]):
+                parent_stack.pop()
+            parent_stack.append(control)
+    return controls
+
+class MoreLater(Exception):
+    pass
+
+class MultiNestIterator(object):
+    def __init__(self, json_files):
+        self.controls = set(organize_files(json_files))
+        self.available = (
+            collections.deque(c for c in self.controls if c.parent is None))
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if not self.controls:
+            raise StopIteration
+        elif not self.available:
+            raise MoreLater
+        return self.available.popleft()
+
+    def done(self, control):
+        if control not in self.controls:
+            raise ValueError('not waiting on this control', control)
+        self.controls.remove(control)
+        self.available.extend(control.children)
 
 
 def extant_file(x):
@@ -229,6 +303,28 @@ def extant_file(x):
     if not os.path.exists(x):
         raise argparse.ArgumentError("{0} does not exist".format(x))
     return x
+
+
+def yaml_template_loader(yaml):
+    key_pairs = []
+    for k, v in yaml.iteritems():
+        all_keys = {k}.union(v.get('deps', []))
+        key_pairs.append((all_keys, v))
+    print key_pairs
+    def loader(d, control):
+        d_keys = set(d)
+        d = next((v for k, v in key_pairs if k == d_keys), None)
+        if d is None:
+            raise ValueError('no specification found', d_keys)
+        control.template = d['template']
+        control.template_file = d.get('template-file')
+    return loader
+
+def plain_template_loader(template, template_file):
+    def loader(d, control):
+        control.template = template
+        control.template_file = template_file
+    return loader
 
 
 def parse_arguments():
@@ -253,6 +349,10 @@ def parse_arguments():
             returns non-zero exit status (default: %(default)s)""")
     parser.add_argument('--template-file', dest='template_file', metavar="FILE",
             help='Command-execution template file path.')
+    parser.add_argument('--multinest-file', metavar='FILE',
+            type=argparse.FileType('r'),
+            help="""A YAML file containing information for running multiple
+            levels of control.json files.""")
     parser.add_argument('--save-cmd-file', dest='savecmd_file',
             help="""Name of the file that will contain the command that was
             executed.""")
@@ -271,27 +371,33 @@ def parse_arguments():
             help='Nestly control dictionaries')
     arguments = parser.parse_args()
 
-    template = arguments.template
+    if arguments.multinest_file:
+        multinest = yaml.safe_load(arguments.multinest_file)
+        template_loader = yaml_template_loader(multinest)
+    else:
+        template = arguments.template
 
-    # Make sure that either a template or a template file was given
-    if arguments.template_file:
-        # if given a template file, the default is to run the input
-        if not arguments.template:
-            template = os.path.join('.',
-                    os.path.basename(arguments.template_file))
+        # Make sure that either a template or a template file was given
+        if arguments.template_file:
+            # if given a template file, the default is to run the input
+            if not arguments.template:
+                template = os.path.join('.',
+                        os.path.basename(arguments.template_file))
 
-            # If using the default argument, the template must be executable:
-            if (not os.access(arguments.template_file, os.X_OK) and not
-                    arguments.dry_run):
-                raise SystemExit(
-                        "{0} is not executable. Specify a template.".format(
-                    arguments.template_file))
+                # If using the default argument, the template must be executable:
+                if (not os.access(arguments.template_file, os.X_OK) and not
+                        arguments.dry_run):
+                    parser.exit(
+                        "the template file {0} is not executable.".format(
+                            arguments.template_file))
 
-    if not (arguments.template or arguments.template_file):
-        parser.exit("Error: Please specify either a template "
-                "or a template file")
+        if not (arguments.template or arguments.template_file):
+            parser.exit("Error: Please specify either a template "
+                    "or a template file")
 
-    logging.info('Template: %s', template)
+        logging.info('Template: %s', template)
+        template_loader = plain_template_loader(
+            template, arguments.template_file)
 
     if arguments.local_procs is not None:
         max_procs = arguments.local_procs
@@ -303,16 +409,16 @@ def parse_arguments():
     data = {}
     data['dry_run'] = dry_run
     data['start_directory'] = os.getcwd()
-    data['template'] = template
-    data['template_file'] = arguments.template_file
     data['savecmd_file'] = arguments.savecmd_file
     data['log_file'] = arguments.log_file
     data['stop_on_error'] = arguments.stop_on_error
     data['summary_file'] = arguments.summary_file
 
-    return data, max_procs, arguments.json_files
+    controls = MultiNestIterator(
+        arguments.json_files, template_loader=template_loader)
+    return data, max_procs, controls
 
 def main():
-    data, max_procs, json_files = parse_arguments()
-    invoke(max_procs, data, json_files)
+    data, max_procs, controls = parse_arguments()
+    invoke(max_procs, data, controls)
 
