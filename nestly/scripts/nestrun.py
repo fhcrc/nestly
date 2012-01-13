@@ -274,8 +274,8 @@ class MoreLater(Exception):
     pass
 
 class MultiNestIterator(object):
-    def __init__(self, json_files):
-        self.controls = set(organize_files(json_files))
+    def __init__(self, json_files, template_loader=None):
+        self.controls = set(organize_files(json_files, template_loader))
         self.available = (
             collections.deque(c for c in self.controls if c.parent is None))
 
@@ -414,8 +414,7 @@ def parse_arguments():
     data['stop_on_error'] = arguments.stop_on_error
     data['summary_file'] = arguments.summary_file
 
-    controls = MultiNestIterator(
-        arguments.json_files, template_loader=template_loader)
+    controls = MultiNestIterator(arguments.json_files, template_loader)
     return data, max_procs, controls
 
 def main():
