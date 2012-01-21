@@ -35,6 +35,7 @@ def _terminate_procs(procs):
 def invoke(max_procs, data, controls):
     running_procs = {}
     all_procs = []
+    n_done = 0
     while True:
         while len(running_procs) < max_procs:
             try:
@@ -66,7 +67,7 @@ def invoke(max_procs, data, controls):
 
         exit_status = os.WEXITSTATUS(status)
         proc, g = running_procs.pop(pid)
-        proc.complete(exit_status)
+        proc.complete(exit_status, data['status_files'])
         controls.done(proc.control)
 
         try:
@@ -76,17 +77,21 @@ def invoke(max_procs, data, controls):
         else:
             raise ValueError('worker generators should only yield once')
 
+        n_done += 1
         # Check exit status, cancel jobs if stop_on_error specified and
         # non-zero
         if exit_status:
-            logging.warn('[%s] %s Finished with non-zero exit status %s\n%s',
-                    pid, proc.working_dir, exit_status, proc.log_tail())
+            logging.warn(
+                '[%s] %s Finished (%d/%d) with non-zero exit status %s\n%s',
+                pid, proc.working_dir, n_done, len(controls), exit_status,
+                proc.log_tail())
             if data['stop_on_error']:
                 _terminate_procs(running_procs)
                 break
         else:
-            logging.info("[%s] %s Finished with %s", pid, proc.working_dir,
-                    exit_status)
+            logging.info(
+                "[%s] %s Finished (%d/%d) with %s",
+                pid, proc.working_dir, n_done, len(controls), exit_status)
 
 
 def write_summary(all_procs, summary_file):
@@ -138,13 +143,16 @@ class NestlyProcess(object):
         self.end_time = datetime.datetime.now()
         self.status = 'TERMINATED'
 
-    def complete(self, return_code):
+    def complete(self, return_code, write_status_file):
         """
         Mark the process as complete with provided return_code
         """
         self.return_code = return_code
         self.status = 'COMPLETE' if not return_code else 'FAILED'
         self.end_time = datetime.datetime.now()
+        if write_status_file:
+            with open(os.path.join(self.working_dir, 'status'), 'w') as fobj:
+                fobj.write('%s\n' % (return_code,))
 
     @property
     def running_time(self):
@@ -279,9 +287,13 @@ class MultiNestIterator(object):
         self.controls = set(organize_files(json_files, template_loader))
         self.available = (
             collections.deque(c for c in self.controls if c.parent is None))
+        self.n_controls = len(self.controls)
 
     def __iter__(self):
         return self
+
+    def __len__(self):
+        return self.n_controls
 
     def next(self):
         if not self.controls:
@@ -367,6 +379,9 @@ def parse_arguments():
             does not execute commands.""", default=False)
     parser.add_argument('--summary-file', type=argparse.FileType('w'),
             help="""Write a summary of the run to the specified file""")
+    parser.add_argument('--status-files', action='store_true', default=False,
+        help="""Write exit status files into the same directory as the status.json
+        files.""")
     parser.add_argument('json_files', type=extant_file, nargs='+',
             help='Nestly control dictionaries')
     arguments = parser.parse_args()
@@ -413,6 +428,7 @@ def parse_arguments():
     data['log_file'] = arguments.log_file
     data['stop_on_error'] = arguments.stop_on_error
     data['summary_file'] = arguments.summary_file
+    data['status_files'] = arguments.status_files
 
     controls = MultiNestIterator(arguments.json_files, template_loader)
     return data, max_procs, controls
