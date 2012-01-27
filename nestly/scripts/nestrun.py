@@ -69,7 +69,10 @@ def invoke(max_procs, data, controls):
         exit_status = os.WEXITSTATUS(status)
         proc, g = running_procs.pop(pid)
         proc.complete(exit_status, data['status_files'])
-        controls.done(proc.control)
+        remove_children = False
+        if exit_status and data['ignore_multinest_on_failure']:
+            remove_children = True
+        controls.done(proc.control, remove_children=remove_children)
 
         try:
             g.next()
@@ -308,11 +311,15 @@ class MultiNestIterator(object):
             raise MoreLater
         return self.available.popleft()
 
-    def done(self, control):
+    def done(self, control, remove_children=False):
         if control not in self.controls:
             raise ValueError('not waiting on this control', control)
         self.controls.remove(control)
-        self.available.extend(control.children)
+        if remove_children:
+            for child in control.children:
+                self.done(child, remove_children=True)
+        else:
+            self.available.extend(control.children)
 
 
 def extant_file(x):
@@ -388,6 +395,9 @@ def parse_arguments():
     parser.add_argument('--status-files', action='store_true', default=False,
         help="""Write exit status files into the same directory as the status.json
         files.""")
+    parser.add_argument('--ignore-multinest-on-failure',
+        action='store_true', default=False,
+        help="""If a parent job fails, don't run any of the child jobs.""")
     parser.add_argument('json_files', type=extant_file, nargs='+',
             help='Nestly control dictionaries')
     arguments = parser.parse_args()
@@ -435,6 +445,7 @@ def parse_arguments():
     data['stop_on_error'] = arguments.stop_on_error
     data['summary_file'] = arguments.summary_file
     data['status_files'] = arguments.status_files
+    data['ignore_multinest_on_failure'] = arguments.ignore_multinest_on_failure
 
     controls = MultiNestIterator(arguments.json_files, template_loader)
     return data, max_procs, controls
