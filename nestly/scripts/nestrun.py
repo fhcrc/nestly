@@ -5,6 +5,7 @@ import argparse
 import collections
 import csv
 import datetime
+import errno
 import json
 import logging
 import os
@@ -137,6 +138,11 @@ class NestlyProcess(object):
         self.start_time = datetime.datetime.now()
         self.end_time = None
         self.status = 'RUNNING'
+        try:
+            os.unlink(os.path.join(self.working_dir, 'status'))
+        except OSError, e:
+            if e.errno != errno.ENOENT:
+                raise
 
     def terminate(self):
         self.popen.terminate()
