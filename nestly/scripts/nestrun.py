@@ -6,12 +6,14 @@ import collections
 import csv
 import datetime
 import errno
+import functools
 import json
 import logging
 import os
 import os.path
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import yaml
@@ -32,70 +34,104 @@ def _terminate_procs(procs):
         proc.terminate()
     sys.exit(1)
 
+def sigterm_handler(nonlocal, signum, frame):
+    logging.warning('SIGTERM received; no longer spawning jobs')
+    nonlocal['spawn_jobs'] = False
+
+def sigusr1_handler(running_procs, signum, frame):
+    for pid, (proc, _) in running_procs.iteritems():
+        sys.stderr.write('%5d - in %s\n' % (pid, proc.working_dir))
+
+def sigint_handler(nonlocal, all_procs, running_procs, signum, frame):
+    if nonlocal['received_SIGINT']:
+        logging.warning('SIGINT received; terminating')
+        _terminate_procs(running_procs)
+        write_summary(all_procs, data['summary_file'])
+        sys.exit(0)
+    else:
+        logging.warning('SIGINT received; send again to terminate')
+        nonlocal['received_SIGINT'] = True
 
 def invoke(max_procs, data, controls):
+    nonlocal = {'spawn_jobs': True, 'received_SIGINT': False}
     running_procs = {}
     all_procs = []
     n_done = 0
-    while True:
-        while len(running_procs) < max_procs:
+
+    signal.signal(signal.SIGTERM, functools.partial(sigterm_handler, nonlocal))
+    signal.signal(signal.SIGUSR1,
+        functools.partial(sigusr1_handler, running_procs))
+    signal.signal(signal.SIGINT,
+        functools.partial(sigint_handler, nonlocal, all_procs, running_procs))
+    for sig in ['SIGTERM', 'SIGUSR1', 'SIGINT']:
+        signal.siginterrupt(getattr(signal, sig), False)
+
+    try:
+        while True:
+            while nonlocal['spawn_jobs'] and len(running_procs) < max_procs:
+                try:
+                    control = controls.next()
+                except MoreLater:
+                    break
+                except StopIteration:
+                    # no more files; allow other processes to finish.
+                    break
+                g = worker(data, control)
+                try:
+                    proc = g.next()
+                except StopIteration:
+                    continue
+                except OSError:
+                    # OSError thrown when command couldn't be started
+                    logging.exception("Exception starting %s", control)
+                    if data['stop_on_error']:
+                        _terminate_procs(running_procs)
+                        return
+                else:
+                    all_procs.append(proc)
+                    running_procs[proc.pid] = proc, g
+
             try:
-                control = controls.next()
-            except MoreLater:
-                break
-            except StopIteration:
-                if not running_procs:
-                    write_summary(all_procs, data['summary_file'])
-                    return
-                break
-            g = worker(data, control)
+                pid, status = os.wait()
+            except OSError, e:
+                if e.errno != errno.ECHILD:
+                    raise
+                # wait(2) raising ECHILD means there's no child processes to wait
+                # for anymore, so we're done.
+                return
+
+            exit_status = os.WEXITSTATUS(status)
+            proc, g = running_procs.pop(pid)
+            proc.complete(exit_status, data['status_files'])
+            remove_children = False
+            if exit_status and data['ignore_multinest_on_failure']:
+                remove_children = True
+            controls.done(proc.control, remove_children=remove_children)
+
             try:
-                proc = g.next()
+                g.next()
             except StopIteration:
-                continue
-            except OSError:
-                # OSError thrown when command couldn't be started
-                logging.exception("Exception starting %s", control)
+                pass
+            else:
+                raise ValueError('worker generators should only yield once')
+
+            n_done += 1
+            # Check exit status, cancel jobs if stop_on_error specified and
+            # non-zero
+            if exit_status:
+                logging.warn(
+                    '[%s] %s Finished (%d/%d) with non-zero exit status %s\n%s',
+                    pid, proc.working_dir, n_done, len(controls), exit_status,
+                    proc.log_tail())
                 if data['stop_on_error']:
                     _terminate_procs(running_procs)
-                    write_summary(all_procs, data['summary_file'])
                     return
             else:
-                all_procs.append(proc)
-                running_procs[proc.pid] = proc, g
-
-        pid, status = os.wait()
-
-        exit_status = os.WEXITSTATUS(status)
-        proc, g = running_procs.pop(pid)
-        proc.complete(exit_status, data['status_files'])
-        remove_children = False
-        if exit_status and data['ignore_multinest_on_failure']:
-            remove_children = True
-        controls.done(proc.control, remove_children=remove_children)
-
-        try:
-            g.next()
-        except StopIteration:
-            pass
-        else:
-            raise ValueError('worker generators should only yield once')
-
-        n_done += 1
-        # Check exit status, cancel jobs if stop_on_error specified and
-        # non-zero
-        if exit_status:
-            logging.warn(
-                '[%s] %s Finished (%d/%d) with non-zero exit status %s\n%s',
-                pid, proc.working_dir, n_done, len(controls), exit_status,
-                proc.log_tail())
-            if data['stop_on_error']:
-                _terminate_procs(running_procs)
-                break
-        else:
-            logging.info(
-                "[%s] %s Finished (%d/%d) with %s",
-                pid, proc.working_dir, n_done, len(controls), exit_status)
+                logging.info(
+                    "[%s] %s Finished (%d/%d) with %s",
+                    pid, proc.working_dir, n_done, len(controls), exit_status)
+    finally:
+        write_summary(all_procs, data['summary_file'])
 
 
 def write_summary(all_procs, summary_file):
