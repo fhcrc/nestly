@@ -30,7 +30,12 @@ def _terminate_procs(procs):
     logging.warn("Stopping all remaining processes")
     for proc, g in procs.values():
         logging.debug("[%s] SIGTERM", proc.pid)
-        proc.terminate()
+        try:
+            proc.terminate()
+        except OSError, e:
+            # we don't care if the process we tried to kill didn't exist.
+            if e.errno != errno.ESRCH:
+                raise
     sys.exit(1)
 
 def sigterm_handler(nonlocal, signum, frame):
