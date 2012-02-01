@@ -66,8 +66,7 @@ def invoke(max_procs, data, json_files):
         functools.partial(sigusr1_handler, running_procs))
     signal.signal(signal.SIGINT,
         functools.partial(sigint_handler, nonlocal, all_procs, running_procs))
-    for sig in ['SIGTERM', 'SIGUSR1', 'SIGINT']:
-        signal.siginterrupt(getattr(signal, sig), False)
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
     files = iter(json_files)
     try:
@@ -96,11 +95,14 @@ def invoke(max_procs, data, json_files):
             try:
                 pid, status = os.wait()
             except OSError, e:
-                if e.errno != errno.ECHILD:
-                    raise
                 # wait(2) raising ECHILD means there's no child processes to wait
                 # for anymore, so we're done.
-                return
+                if e.errno == errno.ECHILD:
+                    return
+                elif e.errno == errno.EINTR:
+                    continue
+                else:
+                    raise
 
             # Pull the actual exit status - high byte of 16-bit number
             exit_status = os.WEXITSTATUS(status)
@@ -232,7 +234,7 @@ def worker(data, json_file):
         try:
             shutil.copymode(template_file, output_template)
         except OSError, e:
-            if e.errno == 1:
+            if e.errno == errno.EPERM:
                 logging.warn("Couldn't set permissions on %s. "
                         "Continuing with existing permissions",
                         output_template)
@@ -252,7 +254,16 @@ def worker(data, json_file):
         try:
             with open(p(log_file), 'w') as log:
                 cmd = shlex.split(work)
-                pr = subprocess.Popen(cmd, stdout=log, stderr=log, cwd=p())
+                while True:
+                    try:
+                        pr = subprocess.Popen(
+                            cmd, stdout=log, stderr=log, cwd=p())
+                    except OSError, e:
+                        if e.errno != errno.EINTR:
+                            raise
+                        continue
+                    else:
+                        break
                 logging.info('[%d] Started %s in %s', pr.pid, work, p())
                 nestproc = NestlyProcess(cmd, p(), pr)
                 yield nestproc
