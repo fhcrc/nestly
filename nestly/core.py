@@ -137,6 +137,12 @@ class Nest(object):
 
         return inner(self.base_dict, self._levels[:])
 
+    def __iter__(self):
+        """
+        Iterate over directory, control pairs. Same as :meth:`Nest.iter`.
+        """
+        return self.iter()
+
     def build(self, root="runs"):
         """
         Build a nested directory structure, starting in ``root``

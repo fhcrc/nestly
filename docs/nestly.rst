@@ -22,6 +22,4 @@ Subpackages
 
 .. toctree::
 
-    ..nestly.scripts
-    ..nestly.test
-
+    nestly.scripts
