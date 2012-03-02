@@ -38,6 +38,12 @@ def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP,
             control = _ordered_load(fp)
 
         keys = keys if keys is not None else control.keys()
+        if frozenset(keys) - frozenset(control):
+            # Unknown keys
+            raise ValueError(
+                    "The following key(s) are not present in {1}: {0}".format(
+                        ', '.join(frozenset(keys) - frozenset(control)),
+                        fp.name))
 
         with open(f) as fp:
             reader = csv.DictReader(fp, delimiter=separator)
@@ -64,6 +70,10 @@ def delim(arguments):
         writer.writerow(r)
         writer.writerows(results)
 
+def comma_separated_values(s):
+    s = s.split(',')
+    return s
+
 def main(args=sys.argv[1:]):
     """
     Command-line interface for nestagg
@@ -75,7 +85,8 @@ def main(args=sys.argv[1:]):
             with delimited files.""")
     delim_parser.set_defaults(func=delim)
     delim_parser.add_argument('-k', '--keys', help="""Comma separated list of
-            keys from the JSON file to include [default: all keys]""")
+            keys from the JSON file to include [default: all keys]""",
+            type=comma_separated_values)
     #delim_parser.add_argument('-d', '--directory',
         #help="""Directory to search for control.json files""")
     delim_parser.add_argument('delimited_files', metavar="delim_file",
