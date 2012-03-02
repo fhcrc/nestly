@@ -14,7 +14,7 @@ import sys
 DEFAULT_SEP = ','
 DEFAULT_NAME = 'control.json'
 
-# JSON loaders returning OrderedDicts
+# JSON loaders retaining key order
 _ordered_load = functools.partial(json.load,
                                   object_pairs_hook=collections.OrderedDict)
 _ordered_loads = functools.partial(json.loads,
@@ -28,8 +28,8 @@ def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP,
     Combines each file with values from JSON dictionary in same directory
 
     :param iterable delimited_files: Iterable of delimited files
-    :param keys: List of keys to select from JSON dictionary. If ``None``, keep all
-                keys.
+    :param keys: List of keys to select from JSON dictionary. If ``None``, keep
+                 all keys.
     :param separator: Delimiter
     """
     for f in delimited_files:
@@ -37,7 +37,7 @@ def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP,
         with open(os.path.join(dn, control_name)) as fp:
             control = _ordered_load(fp)
 
-        keys = frozenset(keys or control.keys())
+        keys = keys if keys is not None else control.keys()
 
         with open(f) as fp:
             reader = csv.DictReader(fp, delimiter=separator)
@@ -74,14 +74,17 @@ def main(args=sys.argv[1:]):
     delim_parser = subparsers.add_parser('delim', help="""Combine control files
             with delimited files.""")
     delim_parser.set_defaults(func=delim)
-    delim_parser.add_argument('-k', '--keys', help="""Keys to include [default:
-            all]""")
+    delim_parser.add_argument('-k', '--keys', help="""Comma separated list of
+            keys from the JSON file to include [default: all keys]""")
     #delim_parser.add_argument('-d', '--directory',
         #help="""Directory to search for control.json files""")
     delim_parser.add_argument('delimited_files', metavar="delim_file",
-            nargs="+")
+            help="""Delimited file(s) to combine. A control.json file must be
+            present in each directory""", nargs="+")
     delim_parser.add_argument('-s', '--separator', default=DEFAULT_SEP,
             help="""Separator [default: %(default)s]""")
+    delim_parser.add_argument('-t', '--tab', action='store_const',
+            dest='separator', const='\t', help="""Files are tab-separated""")
     delim_parser.add_argument('-o', '--output', default=sys.stdout,
         type=argparse.FileType('w'), help="""Output file [default: stdout]""")
 
