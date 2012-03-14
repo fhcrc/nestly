@@ -20,8 +20,8 @@ _ordered_load = functools.partial(json.load,
 _ordered_loads = functools.partial(json.loads,
                                    object_pairs_hook=collections.OrderedDict)
 
-def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP,
-                 control_name=DEFAULT_NAME):
+def _delim_accum(delimited_files, keys=None, exclude_keys=None,
+        separator=DEFAULT_SEP, control_name=DEFAULT_NAME):
     """
     Accumulator for delimited files
 
@@ -38,6 +38,9 @@ def _delim_accum(delimited_files, keys=None, separator=DEFAULT_SEP,
             control = _ordered_load(fp)
 
         keys = keys if keys is not None else control.keys()
+        if exclude_keys:
+            keys = list(frozenset(keys) - frozenset(exclude_keys))
+
         if frozenset(keys) - frozenset(control):
             # Unknown keys
             raise ValueError(
@@ -63,7 +66,7 @@ def delim(arguments):
     """
     with arguments.output as fp:
         results = _delim_accum(arguments.delimited_files, arguments.keys,
-                               arguments.separator)
+                arguments.exclude_keys, arguments.separator)
         r = next(results)
         writer = csv.DictWriter(fp, r.keys(), delimiter=arguments.separator)
         writer.writeheader()
@@ -84,9 +87,13 @@ def main(args=sys.argv[1:]):
     delim_parser = subparsers.add_parser('delim', help="""Combine control files
             with delimited files.""")
     delim_parser.set_defaults(func=delim)
-    delim_parser.add_argument('-k', '--keys', help="""Comma separated list of
+    key_group = delim_parser.add_mutually_exclusive_group()
+    key_group.add_argument('-k', '--keys', help="""Comma separated list of
             keys from the JSON file to include [default: all keys]""",
             type=comma_separated_values)
+    key_group.add_argument('-x', '--exclude-keys', help="""Comma separated
+            list of keys from the JSON file not to include [default:
+            %(default)s]""", type=comma_separated_values)
     #delim_parser.add_argument('-d', '--directory',
         #help="""Directory to search for control.json files""")
     delim_parser.add_argument('delimited_files', metavar="delim_file",
