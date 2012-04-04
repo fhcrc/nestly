@@ -11,6 +11,8 @@ import os.path
 import json
 import sys
 
+from ..core import nest_map
+
 DEFAULT_SEP = ','
 DEFAULT_NAME = 'control.json'
 
@@ -20,43 +22,40 @@ _ordered_load = functools.partial(json.load,
 _ordered_loads = functools.partial(json.loads,
                                    object_pairs_hook=collections.OrderedDict)
 
-def _delim_accum(delimited_files, keys=None, exclude_keys=None,
-        separator=DEFAULT_SEP, control_name=DEFAULT_NAME):
+def _delim_accum(control_files, filename_template, keys=None,
+        exclude_keys=None, separator=DEFAULT_SEP):
     """
     Accumulator for delimited files
 
     Combines each file with values from JSON dictionary in same directory
 
-    :param iterable delimited_files: Iterable of delimited files
+    :param iterable control_files: Iterable of control files
+    :param filename_template: A template for the file to nest_map
     :param keys: List of keys to select from JSON dictionary. If ``None``, keep
                  all keys.
     :param separator: Delimiter
     """
-    for f in delimited_files:
-        dn = os.path.dirname(f)
-        with open(os.path.join(dn, control_name)) as fp:
-            control = _ordered_load(fp)
-
+    def map_fn(d, control, keys=keys):
+        f = os.path.join(d, filename_template.format(**control))
         keys = keys if keys is not None else control.keys()
         if exclude_keys:
             keys = list(frozenset(keys) - frozenset(exclude_keys))
-
         if frozenset(keys) - frozenset(control):
             # Unknown keys
             raise ValueError(
-                    "The following key(s) are not present in {1}: {0}".format(
+                    "The following required key(s) are not present in {1}: {0}".format(
                         ', '.join(frozenset(keys) - frozenset(control)),
-                        fp.name))
-
+                        f))
         with open(f) as fp:
             reader = csv.DictReader(fp, delimiter=separator)
             for row in reader:
-                row_dict = collections.OrderedDict(itertools.chain(
-                        ((k, row[k]) for k in reader.fieldnames),
-                        ((k, v) for k, v in control.items() if k in keys))
-                )
+                row_dict = collections.OrderedDict(
+                        itertools.chain(((k, row[k]) for k in reader.fieldnames),
+                        ((k, v) for k, v in control.items() if k in keys)))
 
                 yield row_dict
+
+    return itertools.chain.from_iterable(nest_map(control_files, map_fn))
 
 def delim(arguments):
     """
@@ -65,7 +64,8 @@ def delim(arguments):
     :param arguments: Parsed command line arguments from :func:`main`
     """
     with arguments.output as fp:
-        results = _delim_accum(arguments.delimited_files, arguments.keys,
+        results = _delim_accum(arguments.control_files,
+                arguments.file_template, arguments.keys,
                 arguments.exclude_keys, arguments.separator)
         r = next(results)
         writer = csv.DictWriter(fp, r.keys(), delimiter=arguments.separator)
@@ -94,11 +94,10 @@ def main(args=sys.argv[1:]):
     key_group.add_argument('-x', '--exclude-keys', help="""Comma separated
             list of keys from the JSON file not to include [default:
             %(default)s]""", type=comma_separated_values)
-    #delim_parser.add_argument('-d', '--directory',
-        #help="""Directory to search for control.json files""")
-    delim_parser.add_argument('delimited_files', metavar="delim_file",
-            help="""Delimited file(s) to combine. A control.json file must be
-            present in each directory""", nargs="+")
+    delim_parser.add_argument('file_template', help="""Template for the
+            delimited file to read in each directory [e.g. '{run_id}.csv']""")
+    delim_parser.add_argument('control_files', metavar="control.json",
+            help="""Control files""", nargs="+")
     delim_parser.add_argument('-s', '--separator', default=DEFAULT_SEP,
             help="""Separator [default: %(default)s]""")
     delim_parser.add_argument('-t', '--tab', action='store_const',

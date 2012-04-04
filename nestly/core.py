@@ -5,11 +5,16 @@ Core functions for building nests.
 import collections
 import errno
 import functools
+import itertools
 import json
 import os
 import os.path
 import sys
 import warnings
+
+# Load a JSON file into an ordered dict
+ordered_load = functools.partial(json.load,
+        object_pairs_hook=collections.OrderedDict)
 
 def stripext(path):
     """
@@ -194,20 +199,32 @@ class Nest(object):
         self._levels.append(_Nestable(name, nestable, create_dir, update,
                                       label_func))
 
-    @classmethod
-    def mirror(cls, directory, control_name='control.json'):
+def nest_map(control_iter, map_fn):
+    """
+    Aggregate over a nest.
+
+    For each control file in control_iter, map_fn is called with the directory
+    and control file contents as arguments.
+
+    Example::
+
+        >>> list(nest_map(['run1/control.json', 'run2/control.json'],
+        ...     lambda d, c: c['run_id']))
+        [1, 2]
+
+    :param control_iter: Iterable of paths to JSON control files
+    :param function map_fn: Function to run for each control file. Passed as
+            arguments the directory of the control file and its json-decoded
+            contents.
+    """
+    def fn(control_path):
         """
-        Build a Nest from a directory already containing control.json files.
-
-        :param string directory: Base Directory
-        :param string control_name: Name of json files in subdirectories
+        Read the control file, return the result of calling map_fn
         """
-        control_files = [(parent, f) for parent, _, files in os.walk(directory)
-                    for f in files if f == control_name]
-        for control_file in control_files:
-            with open(control_file) as fp:
-                control = json.load(fp, object_hook=collections.OrderedDict)
-                rev_control = dict(zip(control.values(), control.keys()))
-                split_path = parent[len(directory):].split('/')
+        with open(control_path) as fp:
+            control = ordered_load(fp)
+        dn = os.path.dirname(control_path)
+        return map_fn(dn, control)
 
-
+    mapped = itertools.imap(fn, control_iter)
+    return mapped
