@@ -12,6 +12,8 @@ import os.path
 import sys
 import warnings
 
+CONTROL_NAME = 'control.json'
+
 # Load a JSON file into an ordered dict
 ordered_load = functools.partial(json.load,
         object_pairs_hook=collections.OrderedDict)
@@ -42,7 +44,7 @@ _Nestable = collections.namedtuple('Nestable', ('name', 'nestable',
 
 def _is_iter(iterable):
     """
-    Returns whether an item is iterable or not
+    Return whether an item is iterable or not
     """
     try:
         iter(iterable)
@@ -57,7 +59,7 @@ def _repeat_iter(iterable):
 
 def _templated(fn):
     """
-    Returns a function which applies ``str.format(**ctl)`` to all results of
+    Return a function which applies ``str.format(**ctl)`` to all results of
     ``fn(ctl)``.
     """
     @functools.wraps(fn)
@@ -83,7 +85,7 @@ class Nest(object):
     :param base_dict: Base dictionary to start all control dictionaries from
         (default: ``{}``)
     """
-    def __init__(self, control_name="control.json", indent=2,
+    def __init__(self, control_name=CONTROL_NAME, indent=2,
             fail_on_clash=False, warn_on_clash=True, base_dict=None):
         self.control_name = control_name
         self.indent = indent
@@ -230,3 +232,11 @@ def nest_map(control_iter, map_fn):
 
     mapped = itertools.imap(fn, control_iter)
     return mapped
+
+def control_iter(base_dir, control_name=CONTROL_NAME):
+    """
+    Generate the names of all control files under base_dir
+    """
+    controls = (os.path.join(p, control_name) for p, _, fs in os.walk(base_dir)
+                if control_name in fs)
+    return controls
