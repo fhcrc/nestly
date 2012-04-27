@@ -1,6 +1,7 @@
 dev
 ===
 * Add nestly.core.stripext
+* New aggregation functions: nestagg subcommand; nestly.core.nest_map
 
 0.2.0
 =====

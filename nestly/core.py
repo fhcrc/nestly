@@ -5,11 +5,18 @@ Core functions for building nests.
 import collections
 import errno
 import functools
+import itertools
 import json
 import os
 import os.path
 import sys
 import warnings
+
+CONTROL_NAME = 'control.json'
+
+# Load a JSON file into an ordered dict
+ordered_load = functools.partial(json.load,
+        object_pairs_hook=collections.OrderedDict)
 
 def stripext(path):
     """
@@ -37,7 +44,7 @@ _Nestable = collections.namedtuple('Nestable', ('name', 'nestable',
 
 def _is_iter(iterable):
     """
-    Returns whether an item is iterable or not
+    Return whether an item is iterable or not
     """
     try:
         iter(iterable)
@@ -52,7 +59,7 @@ def _repeat_iter(iterable):
 
 def _templated(fn):
     """
-    Returns a function which applies ``str.format(**ctl)`` to all results of
+    Return a function which applies ``str.format(**ctl)`` to all results of
     ``fn(ctl)``.
     """
     @functools.wraps(fn)
@@ -78,7 +85,7 @@ class Nest(object):
     :param base_dict: Base dictionary to start all control dictionaries from
         (default: ``{}``)
     """
-    def __init__(self, control_name="control.json", indent=2,
+    def __init__(self, control_name=CONTROL_NAME, indent=2,
             fail_on_clash=False, warn_on_clash=True, base_dict=None):
         self.control_name = control_name
         self.indent = indent
@@ -194,20 +201,42 @@ class Nest(object):
         self._levels.append(_Nestable(name, nestable, create_dir, update,
                                       label_func))
 
-    @classmethod
-    def mirror(cls, directory, control_name='control.json'):
+def nest_map(control_iter, map_fn):
+    """
+    Apply ``map_fn`` to the directories defined by ``control_iter``
+
+    For each control file in control_iter, map_fn is called with the directory
+    and control file contents as arguments.
+
+    Example::
+
+        >>> list(nest_map(['run1/control.json', 'run2/control.json'],
+        ...               lambda d, c: c['run_id']))
+        [1, 2]
+
+    :param control_iter: Iterable of paths to JSON control files
+    :param function map_fn: Function to run for each control file. It should
+            accept two arguments: the directory of the control file and the
+            json-decoded contents of the control file.
+    :returns: A generator of the results of applying ``map_fn`` to elements in
+            ``control_iter``
+    """
+    def fn(control_path):
         """
-        Build a Nest from a directory already containing control.json files.
-
-        :param string directory: Base Directory
-        :param string control_name: Name of json files in subdirectories
+        Read the control file, return the result of calling map_fn
         """
-        control_files = [(parent, f) for parent, _, files in os.walk(directory)
-                    for f in files if f == control_name]
-        for control_file in control_files:
-            with open(control_file) as fp:
-                control = json.load(fp, object_hook=collections.OrderedDict)
-                rev_control = dict(zip(control.values(), control.keys()))
-                split_path = parent[len(directory):].split('/')
+        with open(control_path) as fp:
+            control = ordered_load(fp)
+        dn = os.path.dirname(control_path)
+        return map_fn(dn, control)
 
+    mapped = itertools.imap(fn, control_iter)
+    return mapped
 
+def control_iter(base_dir, control_name=CONTROL_NAME):
+    """
+    Generate the names of all control files under base_dir
+    """
+    controls = (os.path.join(p, control_name) for p, _, fs in os.walk(base_dir)
+                if control_name in fs)
+    return controls

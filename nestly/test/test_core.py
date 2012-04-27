@@ -9,7 +9,6 @@ import warnings
 
 from nestly import core
 
-
 @contextlib.contextmanager
 def tempdir():
     td = tempfile.mkdtemp()
@@ -124,3 +123,35 @@ class IsIterTestCase(unittest.TestCase):
         non_iters = [False, True, 9, 4.5, object()]
         for i in non_iters:
             self.assertFalse(core._is_iter(i))
+
+class SimpleNestMixin(object):
+    """
+    Builds a temporary nest
+    """
+    def setUp(self):
+        self.td = tempfile.mkdtemp(prefix='nest')
+        n = core.Nest()
+        n.add('run_id', (1, 2))
+        n.build(self.td)
+
+        self.controls = [os.path.join(p, f)
+                         for p, _, files in os.walk(self.td)
+                         for f in files if f == 'control.json']
+
+    def tearDown(self):
+        shutil.rmtree(self.td)
+
+    def test_preconditions(self):
+        self.assertEqual(2, len(self.controls))
+
+class NestMapTestCase(SimpleNestMixin, unittest.TestCase):
+    def test_provides_dirs(self):
+        actual = sorted(core.nest_map(self.controls, lambda d, c: d))
+        expected = sorted(os.path.dirname(f) for f in self.controls)
+        self.assertEqual(expected, actual)
+
+    def test_control(self):
+        actual = sorted(core.nest_map(self.controls, lambda d, c: c['run_id']))
+        expected = [1, 2]
+        self.assertEqual(expected, actual)
+

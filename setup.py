@@ -17,7 +17,8 @@ setup(name = 'nestly',
       packages=find_packages(),
       entry_points={
           'console_scripts': [
-              'nestrun = nestly.scripts.nestrun:main'
+              'nestrun = nestly.scripts.nestrun:main',
+              'nestagg = nestly.scripts.nestagg:main',
           ]
       },
       #install_requires=['argparse'],
