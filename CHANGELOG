@@ -2,6 +2,7 @@ dev
 ===
 * Add nestly.core.stripext
 * New aggregation functions: nestagg subcommand; nestly.core.nest_map
+* Show tail of log file when nestrun fails (GH-10)
 
 0.2.0
 =====
