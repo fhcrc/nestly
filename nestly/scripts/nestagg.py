@@ -22,8 +22,22 @@ _ordered_load = functools.partial(json.load,
 _ordered_loads = functools.partial(json.loads,
                                    object_pairs_hook=collections.OrderedDict)
 
+def warn(message):
+    print >>sys.stderr, message
+
+def _warn_on_io(fn):
+    @functools.wraps(fn)
+    def f(*args, **kwargs):
+        r = fn(*args, **kwargs)
+        try:
+            for i in r:
+                yield i
+        except IOError, e:
+            warn(str(e))
+    return f
+
 def _delim_accum(control_files, filename_template, keys=None,
-        exclude_keys=None, separator=DEFAULT_SEP):
+        exclude_keys=None, separator=DEFAULT_SEP, missing_action='fail'):
     """
     Accumulator for delimited files
 
@@ -37,6 +51,7 @@ def _delim_accum(control_files, filename_template, keys=None,
     """
     def map_fn(d, control, keys=keys):
         f = os.path.join(d, filename_template.format(**control))
+
         keys = keys if keys is not None else control.keys()
         if exclude_keys:
             keys = list(frozenset(keys) - frozenset(exclude_keys))
@@ -54,6 +69,8 @@ def _delim_accum(control_files, filename_template, keys=None,
                         ((k, v) for k, v in control.items() if k in keys)))
 
                 yield row_dict
+    if missing_action == 'warn':
+        map_fn = _warn_on_io(map_fn)
 
     return itertools.chain.from_iterable(nest_map(control_files, map_fn))
 
@@ -66,7 +83,8 @@ def delim(arguments):
     with arguments.output as fp:
         results = _delim_accum(arguments.control_files,
                 arguments.file_template, arguments.keys,
-                arguments.exclude_keys, arguments.separator)
+                arguments.exclude_keys, arguments.separator,
+                missing_action=arguments.missing_action)
         r = next(results)
         writer = csv.DictWriter(fp, r.keys(), delimiter=arguments.separator)
         writer.writeheader()
@@ -94,6 +112,9 @@ def main(args=sys.argv[1:]):
     key_group.add_argument('-x', '--exclude-keys', help="""Comma separated
             list of keys from the JSON file not to include [default:
             %(default)s]""", type=comma_separated_values)
+    delim_parser.add_argument('-m', '--missing-action', choices=('fail',
+        'warn'), help="""Action to take when a file is missing [default:
+        %(default)s]""", default='fail')
     delim_parser.add_argument('file_template', help="""Template for the
             delimited file to read in each directory [e.g. '{run_id}.csv']""")
     delim_parser.add_argument('control_files', metavar="control.json",

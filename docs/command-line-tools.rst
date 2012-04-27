@@ -61,8 +61,8 @@ Help
 
 ::
 
-    usage: nestagg.py delim [-h] [-k KEYS | -x EXCLUDE_KEYS] [-s SEPARATOR] [-t]
-                            [-o OUTPUT]
+    usage: nestagg.py delim [-h] [-k KEYS | -x EXCLUDE_KEYS] [-m {fail,warn}]
+                            [-s SEPARATOR] [-t] [-o OUTPUT]
                             file_template control.json [control.json ...]
 
     positional arguments:
@@ -77,6 +77,8 @@ Help
       -x EXCLUDE_KEYS, --exclude-keys EXCLUDE_KEYS
                             Comma separated list of keys from the JSON file not to
                             include [default: None]
+      -m {fail,warn}, --missing-action {fail,warn}
+                            Action to take when a file is missing [default: fail]
       -s SEPARATOR, --separator SEPARATOR
                             Separator [default: ,]
       -t, --tab             Files are tab-separated
