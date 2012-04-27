@@ -201,7 +201,7 @@ class Nest(object):
 
 def nest_map(control_iter, map_fn):
     """
-    Aggregate over a nest.
+    Apply ``map_fn`` to the directories defined by ``control_iter``
 
     For each control file in control_iter, map_fn is called with the directory
     and control file contents as arguments.
@@ -209,13 +209,15 @@ def nest_map(control_iter, map_fn):
     Example::
 
         >>> list(nest_map(['run1/control.json', 'run2/control.json'],
-        ...     lambda d, c: c['run_id']))
+        ...               lambda d, c: c['run_id']))
         [1, 2]
 
     :param control_iter: Iterable of paths to JSON control files
-    :param function map_fn: Function to run for each control file. Passed as
-            arguments the directory of the control file and its json-decoded
-            contents.
+    :param function map_fn: Function to run for each control file. It should
+            accept two arguments: the directory of the control file and the
+            json-decoded contents of the control file.
+    :returns: A generator of the results of applying ``map_fn`` to elements in
+            ``control_iter``
     """
     def fn(control_path):
         """

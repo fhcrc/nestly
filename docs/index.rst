@@ -19,6 +19,7 @@ Contents:
    :maxdepth: 2
 
    nestly
+   command-line-tools
 
    modules
    examples
