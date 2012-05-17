@@ -5,12 +5,15 @@ import argparse
 import collections
 import csv
 import datetime
+import errno
+import functools
 import json
 import logging
 import os
 import os.path
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 
@@ -27,64 +30,109 @@ def _terminate_procs(procs):
     logging.warn("Stopping all remaining processes")
     for proc, g in procs.values():
         logging.debug("[%s] SIGTERM", proc.pid)
-        proc.terminate()
+        try:
+            proc.terminate()
+        except OSError, e:
+            # we don't care if the process we tried to kill didn't exist.
+            if e.errno != errno.ESRCH:
+                raise
     sys.exit(1)
 
+def sigterm_handler(nonlocal, signum, frame):
+    logging.warning('SIGTERM received; no longer spawning jobs')
+    nonlocal['spawn_jobs'] = False
+
+def sigusr1_handler(running_procs, signum, frame):
+    for pid, (proc, _) in running_procs.iteritems():
+        sys.stderr.write('%5d - in %s\n' % (pid, proc.working_dir))
+    sys.stderr.flush()  # just in case it's being buffered by something
+
+def sigint_handler(nonlocal, write_this_summary, running_procs, signum, frame):
+    if nonlocal['received_SIGINT']:
+        logging.warning('SIGINT received; terminating')
+        _terminate_procs(running_procs)
+        write_this_summary()
+        sys.exit(0)
+    else:
+        logging.warning('SIGINT received; send again to terminate')
+        nonlocal['received_SIGINT'] = True
 
 def invoke(max_procs, data, json_files):
+    nonlocal = {'spawn_jobs': True, 'received_SIGINT': False}
     running_procs = {}
     all_procs = []
+    def write_this_summary():
+        write_summary(all_procs, data['summary_file'])
+
+    signal.signal(signal.SIGTERM, functools.partial(sigterm_handler, nonlocal))
+    signal.signal(signal.SIGUSR1,
+        functools.partial(sigusr1_handler, running_procs))
+    signal.signal(signal.SIGINT,
+        functools.partial(sigint_handler, nonlocal, write_this_summary,
+                          running_procs))
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
     files = iter(json_files)
-    while True:
-        while len(running_procs) < max_procs:
+    try:
+        while True:
+            while nonlocal['spawn_jobs'] and len(running_procs) < max_procs:
+                try:
+                    json_file = files.next()
+                except StopIteration:
+                    # no more files; allow other processes to finish.
+                    break
+                g = worker(data, json_file)
+                try:
+                    proc = g.next()
+                except StopIteration:
+                    continue
+                except OSError:
+                    # OSError thrown when command couldn't be started
+                    logging.exception("Exception starting %s", json_file)
+                    if data['stop_on_error']:
+                        _terminate_procs(running_procs)
+                        return
+                else:
+                    all_procs.append(proc)
+                    running_procs[proc.pid] = proc, g
+
             try:
-                json_file = files.next()
-            except StopIteration:
-                if not running_procs:
-                    write_summary(all_procs, data['summary_file'])
+                pid, status = os.wait()
+            except OSError, e:
+                # wait(2) raising ECHILD means there's no child processes to wait
+                # for anymore, so we're done.
+                if e.errno == errno.ECHILD:
                     return
-                break
-            g = worker(data, json_file)
+                elif e.errno == errno.EINTR:
+                    continue
+                else:
+                    raise
+
+            # Pull the actual exit status - high byte of 16-bit number
+            exit_status = os.WEXITSTATUS(status)
+            proc, g = running_procs.pop(pid)
+            proc.complete(exit_status)
+
             try:
-                proc = g.next()
+                g.next()
             except StopIteration:
-                continue
-            except OSError:
-                # OSError thrown when command couldn't be started
-                logging.exception("Exception starting %s", json_file)
+                pass
+            else:
+                raise ValueError('worker generators should only yield once')
+
+            # Check exit status, cancel jobs if stop_on_error specified and
+            # non-zero
+            if exit_status:
+                logging.warn('[%s] %s Finished with non-zero exit status %s\n%s',
+                        pid, proc.working_dir, exit_status, proc.log_tail())
                 if data['stop_on_error']:
                     _terminate_procs(running_procs)
-                    write_summary(all_procs, data['summary_file'])
                     return
             else:
-                all_procs.append(proc)
-                running_procs[proc.pid] = proc, g
-
-        pid, status = os.wait()
-
-        # Pull the actual exit status - high byte of 16-bit number
-        exit_status = status >> 8
-        proc, g = running_procs.pop(pid)
-        proc.complete(exit_status)
-
-        try:
-            g.next()
-        except StopIteration:
-            pass
-        else:
-            raise ValueError('worker generators should only yield once')
-
-        # Check exit status, cancel jobs if stop_on_error specified and
-        # non-zero
-        if exit_status:
-            logging.warn('[%s] %s Finished with non-zero exit status %s\n%s',
-                    pid, proc.working_dir, exit_status, proc.log_tail())
-            if data['stop_on_error']:
-                _terminate_procs(running_procs)
-                break
-        else:
-            logging.info("[%s] %s Finished with %s", pid, proc.working_dir,
-                    exit_status)
+                logging.info("[%s] %s Finished with %s", pid, proc.working_dir,
+                        exit_status)
+    finally:
+        write_this_summary()
 
 
 def write_summary(all_procs, summary_file):
@@ -190,7 +238,7 @@ def worker(data, json_file):
         try:
             shutil.copymode(template_file, output_template)
         except OSError, e:
-            if e.errno == 1:
+            if e.errno == errno.EPERM:
                 logging.warn("Couldn't set permissions on %s. "
                         "Continuing with existing permissions",
                         output_template)
@@ -210,7 +258,16 @@ def worker(data, json_file):
         try:
             with open(p(log_file), 'w') as log:
                 cmd = shlex.split(work)
-                pr = subprocess.Popen(cmd, stdout=log, stderr=log, cwd=p())
+                while True:
+                    try:
+                        pr = subprocess.Popen(
+                            cmd, stdout=log, stderr=log, cwd=p())
+                    except OSError, e:
+                        if e.errno != errno.EINTR:
+                            raise
+                        continue
+                    else:
+                        break
                 logging.info('[%d] Started %s in %s', pr.pid, work, p())
                 nestproc = NestlyProcess(cmd, p(), pr)
                 yield nestproc

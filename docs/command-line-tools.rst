@@ -11,6 +11,28 @@ and ``examples/jsonrun/do_nestrun.sh`` for an example.
 
 .. _`Python Formatter documentation`: http://docs.python.org/library/string.html#formatstrings
 
+Signals
+^^^^^^^
+
+``nestrun`` also handles some signals by default.
+
+.. describe:: SIGTERM
+
+    This tells ``nestrun`` to stop spawning jobs. All jobs that were already
+    spawned will continue running.
+
+.. describe:: SIGINT
+
+    This tells ``nestrun`` to terminate if received twice. On the first
+    SIGTERM, ``nestrun`` will emit a warning message; on the second, it will
+    terminate all jobs and then itself.
+
+.. describe:: SIGUSR1
+
+    This tells ``nestrun`` to immediately write a list of all currently-running
+    processes and their working directories to stderr, then flush stderr.
+
+
 Help
 ^^^^
 

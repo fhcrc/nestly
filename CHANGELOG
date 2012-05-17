@@ -1,3 +1,7 @@
+0.4.0
+=====
+* Add SIG{INT,TERM,USR1} handling to nestrun (GH-9)
+
 0.3.0
 =====
 * Add nestly.core.stripext
