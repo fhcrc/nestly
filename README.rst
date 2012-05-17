@@ -90,7 +90,7 @@ With the final ``control.json`` reading, for example::
 
 The control files created then serve as inputs to ``nestrun`` for template substition, for example::
 
-  nestrun --dry-run ---save-cmd-file command.sh \
+  nestrun --save-cmd-file command.sh \
           --template='my_command -s {strategy} --count={run_count} {input_file}' \
           $(find runs -name "control.json")
 
