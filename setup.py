@@ -7,9 +7,10 @@ except ImportError:
     distribute_setup.use_setuptools()
     from setuptools import setup, find_packages
 
+import nestly
 
 setup(name='nestly',
-      version='0.3',
+      version=nestly.__version__,
       description="""Nestly is a collection of functions designed to make
       running software with combinatorial choices of parameters easier.""",
       author='Erick Matsen',
