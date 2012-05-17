@@ -45,12 +45,13 @@ def sigterm_handler(nonlocal, signum, frame):
 def sigusr1_handler(running_procs, signum, frame):
     for pid, (proc, _) in running_procs.iteritems():
         sys.stderr.write('%5d - in %s\n' % (pid, proc.working_dir))
+    sys.stderr.flush()  # just in case it's being buffered by something
 
-def sigint_handler(nonlocal, all_procs, running_procs, signum, frame):
+def sigint_handler(nonlocal, write_this_summary, running_procs, signum, frame):
     if nonlocal['received_SIGINT']:
         logging.warning('SIGINT received; terminating')
         _terminate_procs(running_procs)
-        write_summary(all_procs, data['summary_file'])
+        write_this_summary()
         sys.exit(0)
     else:
         logging.warning('SIGINT received; send again to terminate')
@@ -60,12 +61,15 @@ def invoke(max_procs, data, json_files):
     nonlocal = {'spawn_jobs': True, 'received_SIGINT': False}
     running_procs = {}
     all_procs = []
+    def write_this_summary():
+        write_summary(all_procs, data['summary_file'])
 
     signal.signal(signal.SIGTERM, functools.partial(sigterm_handler, nonlocal))
     signal.signal(signal.SIGUSR1,
         functools.partial(sigusr1_handler, running_procs))
     signal.signal(signal.SIGINT,
-        functools.partial(sigint_handler, nonlocal, all_procs, running_procs))
+        functools.partial(sigint_handler, nonlocal, write_this_summary,
+                          running_procs))
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
     files = iter(json_files)
@@ -128,7 +132,7 @@ def invoke(max_procs, data, json_files):
                 logging.info("[%s] %s Finished with %s", pid, proc.working_dir,
                         exit_status)
     finally:
-        write_summary(all_procs, data['summary_file'])
+        write_this_summary()
 
 
 def write_summary(all_procs, summary_file):
