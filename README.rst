@@ -10,6 +10,13 @@ We would like to set things up tidily with nested directories for output reflect
 
 The `full documentation`_ is available on Github pages.
 
+Installing
+==========
+
+The easiest way is with `pip`_::
+
+    $ pip install nestly
+
 
 Introductory example
 ====================
@@ -103,3 +110,4 @@ and ``examples/jsonrun/do_nestrun.sh`` for an example.
 
 .. _`Python Formatter documentation`: http://docs.python.org/library/string.html#formatstrings
 .. _`full documentation`: http://fhcrc.github.com/nestly/
+.. _`pip`: http://www.pip-installer.org
