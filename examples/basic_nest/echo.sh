@@ -1,2 +1,3 @@
 #!/bin/bash
-echo "{input_file} {run_count} {input_file}"
+echo "var1,var2
+13,{run_count}0"

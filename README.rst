@@ -8,6 +8,19 @@ It can easily do so for "cartesian products" of parameter choices, but can do mu
 The vision here is that we take a fixed set of parameters and generate a single type of output for each defined combination, which can then be combined in some way for comparison and retrieval.
 We would like to set things up tidily with nested directories for output reflecting nested parameter choices.
 
+The `full documentation`_ is available on Github pages.
+
+Installing
+==========
+
+The easiest way is with `pip`_::
+
+    $ pip install nestly
+
+
+Introductory example
+====================
+
 Imagine you'd like to try all possible variations of the following:
 
 ========== ==============================
@@ -33,6 +46,7 @@ For this we can write a little ``make_nest.py``. The guts are::
 
 Running ``make_nest.py``, you get a directory tree like::
 
+  runs
   ├── approximate
   │   ├── 10
   │   │   ├── file1
@@ -69,26 +83,31 @@ Running ``make_nest.py``, you get a directory tree like::
 With the final ``control.json`` reading, for example::
 
   {
-      "input_file": "/Users/cmccoy/Development/nestly/examples/basic_nest/inputs/file3", 
-      "run_count": "1000", 
+      "input_file": "/Users/cmccoy/Development/nestly/examples/basic_nest/inputs/file3",
+      "run_count": "1000",
       "strategy": "exhaustive"
   }
 
 The control files created then serve as inputs to ``nestrun`` for template substition, for example::
 
-  nestrun --dry-run ---save-cmd-file command.sh \
-          --template='my_command -s $strategy --count=$run_count $input_file' \
+  nestrun --save-cmd-file command.sh \
+          --template='my_command -s {strategy} --count={run_count} {input_file}' \
           $(find runs -name "control.json")
 
+This command runs ``my_command`` in all of the tip directories with the appropriate values for the parameters.
 
-This was a "cartesian product" example, but the meal example exhibits a more complex setup.
+This was a "cartesian product" example.
+The "meal" example in the repository exhibits a setup with more complex dependencies between the nests.
 
 Templates
 =========
 
 ``nestrun`` takes a template and a list of control.json files with variables to
 substitute. By default, substitution is performed using the Python built-in
-``str.format`` method. See the `Python documentation`_ for details on syntax,
+``str.format`` method. See the `Python Formatter documentation`_ for details on syntax,
 and ``examples/jsonrun/do_nestrun.sh`` for an example.
 
-.. _`Python Documentation`: http://docs.python.org/library/string.html#formatstrings
+
+.. _`Python Formatter documentation`: http://docs.python.org/library/string.html#formatstrings
+.. _`full documentation`: http://fhcrc.github.com/nestly/
+.. _`pip`: http://www.pip-installer.org
