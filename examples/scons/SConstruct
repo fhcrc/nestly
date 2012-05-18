@@ -1,0 +1,66 @@
+# -*- python -*-
+from os.path import join
+import os
+
+from nestly.scons import SConsWrap
+from nestly import Nest
+
+nest = Nest()
+w = SConsWrap(nest, 'build')
+
+@w.add_aggregate(list)
+def all_counts(outdir, c, inputs):
+    return Command(join(outdir, 'all_counts.csv'),
+                   inputs,
+                   './aggregate.sh $SOURCES >$TARGET')
+
+@w.add_aggregate(list)
+def all_cut(outdir, c, inputs):
+    return Command(join(outdir, 'all_cut.txt'),
+                   inputs,
+                   'cat $SOURCES >$TARGET')
+
+w.add('input_file', [join('inputs', f) for f in os.listdir('inputs')],
+      label_func=os.path.basename)
+
+w.add('cut_range', ['1', '1-2', '4', '3-4'])
+
+@w.add_target()
+def cut(outdir, c):
+    cut, = Command(join(outdir, 'cut'),
+                   c['input_file'],
+                   'cut -c {0[cut_range]} <$SOURCE >$TARGET'.format(c))
+    c['all_cut'].append(cut)
+    return cut
+
+w.add('add_prefix', [True, False])
+
+@w.add_target()
+def prefixed(outdir, c):
+    if not c['add_prefix']:
+        return c['cut']
+
+    return Command(join(outdir, 'prefixed'),
+                   c['cut'],
+                   'sed s:^:s_: <$SOURCE >$TARGET')[0]
+
+w.add('add_suffix', [True, False])
+
+@w.add_target()
+def suffixed(outdir, c):
+    if not c['add_suffix']:
+        return c['prefixed']
+
+    return Command(join(outdir, 'suffixed'),
+                   c['prefixed'],
+                   'sed s:$:_s: <$SOURCE >$TARGET')[0]
+
+@w.add_target()
+def counts(outdir, c):
+    counts, = Command(join(outdir, 'counts'),
+                      c['suffixed'],
+                      'wc <$SOURCE >$TARGET')
+    c['all_counts'].append(counts)
+    return counts
+
+w.finalize_aggregates()
