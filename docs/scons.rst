@@ -185,8 +185,8 @@ The second parameter to :meth:`~SConsWrap.add_aggregate` is the same as the
 first parameter to :meth:`~SConsWrap.add_target`: the name of the aggregate,
 which will default to the name of the function if none is specified.
 
-Calling SCons
-=============
+Calling commands from SCons
+===========================
 
 While the previous example demonstrate how to use the various methods of
 :class:`SConsWrap`, they did not demonstrate how to actually call commands
