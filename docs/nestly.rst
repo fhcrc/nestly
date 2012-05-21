@@ -17,6 +17,14 @@ nestly Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`scons` Module
+-------------------
+
+.. automodule:: nestly.scons
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 Subpackages
 -----------
 

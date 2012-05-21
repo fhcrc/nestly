@@ -23,6 +23,7 @@ Contents:
 
    modules
    examples
+   scons
 
 Indices and tables
 ==================
