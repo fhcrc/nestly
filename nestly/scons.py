@@ -1,4 +1,17 @@
 """SCons integration for nestly."""
+from collections import OrderedDict
+
+def name_targets(func):
+    """
+    Wrap a function such that returning ``'a', 'b', 'c', [1, 2, 3]`` transforms
+    the value into ``dict(a=1, b=2, c=3)``.
+
+    This is useful in the case where the last parameter is an SCons command.
+    """
+    def wrap(*a, **kw):
+        ret = func(*a, **kw)
+        return dict(zip(ret[:-1], ret[-1]))
+    return wrap
 
 class SConsWrap(object):
     """A Nest wrapper to add SCons integration.
@@ -15,7 +28,7 @@ class SConsWrap(object):
         """
         self.nest = nest
         self.dest_dir = dest_dir
-        self.aggregates = []
+        self.aggregates = OrderedDict()
 
     def add(self, *a, **kw):
         "Call .add on the wrapped Nest."
@@ -51,9 +64,10 @@ class SConsWrap(object):
         The first argument is a nullary factory function which will be called
         immediately for each of the current control dictionaries and stored in
         each dictionary with the given name like in ``add_target``. After
-        ``finalize_aggregates`` is called, the decorated function will then be
-        called in the same way as ``add_target``, except with an additional
-        argument: the value which was returned by the factory function.
+        ``finalize_aggregate`` or ``finalize_all_aggregates`` are called, the
+        decorated function will then be called in the same way as
+        ``add_target``, except with an additional argument: the value which was
+        returned by the factory function.
 
         Since nests added after the aggregate can access the factory function's
         value, it can be mutated to provide additional values for use when the
@@ -61,7 +75,7 @@ class SConsWrap(object):
         """
         def deco(func):
             agg_name = name or func.__name__
-            finalizers = []
+            finalizers = self.aggregates[agg_name] = []
             @self.add_target(agg_name)
             def wrap(outdir, c):
                 data = data_fac()
@@ -69,16 +83,28 @@ class SConsWrap(object):
                     return func(outdir, c, data)
                 finalizers.append(finalize)
                 return data
-            self.aggregates.append((agg_name, finalizers))
             return wrap
         return deco
 
-    def finalize_aggregates(self):
-        """
-        Call all of the defined aggregate functions, as described in
-        ``add_aggregate``.
-        """
-        for _, finalizers in self.aggregates:
-            for finalizer in finalizers:
-                finalizer()
+    def finalize_aggregate(self, aggregate):
+        """Call the finalizers for one particular aggregate.
 
+        Finalizing an aggregate this way means that it will not be finalized by
+        any future calls to ``finalize_all_aggregates``.
+        """
+        for finalizer in self.aggregates.pop(aggregate):
+            finalizer()
+
+    def finalize_all_aggregates(self):
+        """Call the finalizers for all defined aggregates.
+
+        If any aggregates have been specifically finalized by
+        ``finalize_aggregate``, they will not be finalized again. This function
+        itself calls ``finalize_aggregate``; if ``finalize_all_aggregates`` is
+        called twice, aggregates will not be finalized twice.
+
+        Aggregates will be finalized in the same order in which they were
+        defined.
+        """
+        for aggregate in list(self.aggregates):
+            self.finalize_aggregate(aggregate)

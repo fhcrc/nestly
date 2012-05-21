@@ -75,4 +75,4 @@ def counts(outdir, c):
     c['all_counts'].append(counts)
     return counts
 
-w.finalize_aggregates()
+w.finalize_all_aggregates()
