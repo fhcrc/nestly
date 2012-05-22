@@ -4,8 +4,14 @@
 # following operations. First, it cuts out a column range from every line in
 # the file, in this case either 1-5 or 3-40. After it does this it optionally
 # filters out every line that has an "o" or "O". Then it runs wc on every such
-# file.
+# file. These word counts then get aggregated together by the prep_tab.sh
+# script.
 #
+# Assuming that SCons is installed, you should be able to run this example by
+# simply typing `scons` in this directory. That should build a series of things
+# in the `build` directory. Because this is a build system, deleting a file or
+# directory in the build directory and then running scons will simply rerun the
+# needed parts.
 
 from os.path import join
 import os
@@ -17,13 +23,12 @@ nest = Nest()
 w = SConsWrap(nest, 'build')
 
 
-# An aggregator that runs prep_tab.sh on all of its arguments.
-# This aggregator can then be populated below.
-@w.add_aggregate(list)
-def all_counts(outdir, c, inputs):
-    return Command(join(outdir, 'all_counts.tab'),
-                   inputs,
-                   './prep_tab.sh $SOURCES | column -t >$TARGET')
+# An aggregator that runs prep_tab.sh on all of its arguments. The `list`
+# argument specifies that this aggregator will be a list of functions. This
+# aggregator is then populated below with `append`.
+@w.add_aggregate(list) def all_counts(outdir, c, inputs): return
+Command(join(outdir, 'all_counts.tab'), inputs, './prep_tab.sh $SOURCES |
+column -t >$TARGET')
 
 # An aggregator that concatenates all of the cut files into one.
 @w.add_aggregate(list)
@@ -37,7 +42,7 @@ def all_cut(outdir, c, inputs):
 w.add('input_file', [join('inputs', f) for f in os.listdir('inputs')],
       label_func=os.path.basename)
 
-# This determines the column range we will cut out of the poem.
+# This determines the column range we will cut out of the file.
 w.add('cut_range', ['1-5', '3-40'])
 
 # This adds a nest with the name 'cut', but also makes an SCons target out of
@@ -75,4 +80,6 @@ def counts(outdir, c):
     c['all_counts'].append(counts)
     return counts
 
+# When we finalize all of the aggregates, all of the aggregate functions are
+# called, creating the corresponding dependencies.
 w.finalize_all_aggregates()
