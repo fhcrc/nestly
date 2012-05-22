@@ -70,7 +70,6 @@ def invoke(max_procs, data, json_files):
     signal.signal(signal.SIGINT,
         functools.partial(sigint_handler, nonlocal, write_this_summary,
                           running_procs))
-    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
     files = iter(json_files)
     try:
