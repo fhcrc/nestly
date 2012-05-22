@@ -4,9 +4,22 @@ SCons integration
 
 .. py:currentmodule:: nestly.scons
 
-The :mod:`nestly.scons` module is provided to make integrating nestly with
-SCons easier. :class:`SConsWrap` wraps a :class:`~nestly.core.Nest` object to
-provide additional methods for adding nests.
+SCons_ is an excellent build tool (analogous to ``make``). The
+:mod:`nestly.scons` module is provided to make integrating nestly with SCons
+easier. :class:`SConsWrap` wraps a :class:`~nestly.core.Nest` object to provide
+additional methods for adding nests. SCons is complex and is fully documented
+on their website, so we do not describe it here. However, for the purposes of
+this document, it suffices to know that dependencies are created when a
+*target* function is called.
+
+The basic idea is that when writing an SConstruct file (analogous to a
+Makefile), these :class:`SConsWrap` objects extend the usual nestly
+functionality with build dependencies. Specifically, there are functions that
+add targets to the nest. When SCons is invoked, these targets are identified
+as dependencies and the needed code is run. There are also aggregate functions
+(this is aggregate with a hard second "a"; rhymes with "Watergate") that don't
+get immediately called, but rather when the :meth:``finalize_aggregate`` method
+is called.
 
 Constructing an ``SConsWrap``
 =============================
@@ -227,3 +240,5 @@ In this case, ``target1`` will be a dict resembling ``{'outfile1':
     :meth:`~SConsWrap.add_target`.
 
 A more involved, runnable example is in the ``examples/scons`` directory.
+
+.. _Scons: http://scons.org/
