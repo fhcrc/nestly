@@ -23,14 +23,14 @@ nest = Nest()
 w = SConsWrap(nest, 'build')
 
 
-# An aggregator that runs prep_tab.sh on all of its arguments. The `list`
-# argument specifies that this aggregator will be a list of functions. This
-# aggregator is then populated below with `append`.
+# Initialize an aggregator that runs prep_tab.sh on all of its arguments. The
+# `list` argument specifies that this aggregator will be a list of functions.
+# This aggregator is then populated below with `append`.
 @w.add_aggregate(list) def all_counts(outdir, c, inputs): return
 Command(join(outdir, 'all_counts.tab'), inputs, './prep_tab.sh $SOURCES |
 column -t >$TARGET')
 
-# An aggregator that concatenates all of the cut files into one.
+# Initialize an aggregator that concatenates all of the cut files into one.
 @w.add_aggregate(list)
 def all_cut(outdir, c, inputs):
     return Command(join(outdir, 'all_cut.txt'),
