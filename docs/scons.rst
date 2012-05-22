@@ -18,7 +18,7 @@ functionality with build dependencies. Specifically, there are functions that
 add targets to the nest. When SCons is invoked, these targets are identified
 as dependencies and the needed code is run. There are also aggregate functions
 (this is aggregate with a hard second "a"; rhymes with "Watergate") that don't
-get immediately called, but rather when the :meth:``finalize_aggregate`` method
+get immediately called, but rather when the :meth:`~SConsWrap.finalize_aggregate` method
 is called.
 
 Constructing an ``SConsWrap``
@@ -64,7 +64,7 @@ function. As a result, the following example is also equivalent::
         return ['  __' + c['nest1'], c['nest1'] + '__  ']
 
 :meth:`~SConsWrap.add_nest` must always be called before being applied as a
-decorator, though. ``@wrap.add_nest`` is not valid; the correct spelling is
+decorator, though. ``@wrap.add_nest`` is not valid; the correct usage is
 ``@wrap.add_nest()`` if no other parameters are specified.
 
 Adding targets
