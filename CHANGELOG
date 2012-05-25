@@ -1,6 +1,7 @@
 0.4.0
 =====
 * Add SIG{INT,TERM,USR1} handling to nestrun (GH-9)
+* Add SCons integration via nestly.scons (GH-12)
 
 0.3.0
 =====

@@ -99,7 +99,7 @@ def main(args=sys.argv[1:]):
     """
     Command-line interface for nestagg
     """
-    parser = argparse.ArgumentParser(description="""Accumulate results of
+    parser = argparse.ArgumentParser(description="""Aggregate results of
             nestly runs""")
     subparsers = parser.add_subparsers()
     delim_parser = subparsers.add_parser('delim', help="""Combine control files

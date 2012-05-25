@@ -21,7 +21,7 @@ The easiest way is with `pip`_::
 Introductory example
 ====================
 
-Imagine you'd like to try all possible variations of the following:
+Imagine you'd like to try all possible combinations of the following:
 
 ========== ==============================
 Option     Choices
@@ -107,7 +107,14 @@ substitute. By default, substitution is performed using the Python built-in
 ``str.format`` method. See the `Python Formatter documentation`_ for details on syntax,
 and ``examples/jsonrun/do_nestrun.sh`` for an example.
 
+SCons integration
+=================
+
+There is also a ``nestly.scons`` module to integrate nestly with the ``make`` replacement SCons_.
+
 
 .. _`Python Formatter documentation`: http://docs.python.org/library/string.html#formatstrings
 .. _`full documentation`: http://fhcrc.github.com/nestly/
 .. _`pip`: http://www.pip-installer.org
+.. _Scons: http://scons.org/
+
