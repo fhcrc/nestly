@@ -20,10 +20,10 @@ Contents:
 
    nestly
    command-line-tools
+   scons
 
    modules
    examples
-   scons
 
 Indices and tables
 ==================
