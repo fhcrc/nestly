@@ -11,7 +11,7 @@ import os.path
 import json
 import sys
 
-from ..core import nest_map
+from ..core import control_iter, nest_map
 
 DEFAULT_SEP = ','
 DEFAULT_NAME = 'control.json'
@@ -80,6 +80,14 @@ def delim(arguments):
 
     :param arguments: Parsed command line arguments from :func:`main`
     """
+
+    if bool(arguments.control_files) == bool(arguments.directory):
+        raise ValueError(
+                'Exactly one of control_files and `-d` must be specified.')
+
+    if arguments.directory:
+        arguments.control_files.extend(control_iter(arguments.directory))
+
     with arguments.output as fp:
         results = _delim_accum(arguments.control_files,
                 arguments.file_template, arguments.keys,
@@ -118,7 +126,10 @@ def main(args=sys.argv[1:]):
     delim_parser.add_argument('file_template', help="""Template for the
             delimited file to read in each directory [e.g. '{run_id}.csv']""")
     delim_parser.add_argument('control_files', metavar="control.json",
-            help="""Control files""", nargs="+")
+            help="""Control files""", nargs="*")
+    delim_parser.add_argument('-d', '--directory', help="""Run on all control
+            files under %(metavar)s. May be used in place of specifying control
+            files.""", metavar='DIR')
     delim_parser.add_argument('-s', '--separator', default=DEFAULT_SEP,
             help="""Separator [default: %(default)s]""")
     delim_parser.add_argument('-t', '--tab', action='store_const',
