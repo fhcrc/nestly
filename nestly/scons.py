@@ -30,6 +30,10 @@ class SConsWrap(object):
         self.dest_dir = dest_dir
         self.aggregates = OrderedDict()
 
+    def __iter__(self):
+        "Iterate over the current controls."
+        return self.nest.iter(self.dest_dir)
+
     def add(self, *a, **kw):
         "Call .add on the wrapped Nest."
         return self.nest.add(*a, **kw)
