@@ -95,16 +95,15 @@ class UpdateTestCase(unittest.TestCase):
 
     def test_update_nokey(self):
         nest = core.Nest()
-        nest.add("number", [{'description': 'one'}], update=True)
-        self.assertRaises(KeyError, list, nest.iter())
+        self.assertRaises(KeyError, nest.add,
+                          "number", [{'description': 'one'}], update=True)
 
     def test_update_overwrite(self):
         nest = core.Nest(fail_on_clash=True)
         nest.add("description", ['Test'])
         values = [{'number': 1, 'description': 'one'},
                   {'number': 2, 'description': 'two'}]
-        nest.add("number", values, update=True)
-        self.assertRaises(KeyError, list, nest.iter())
+        self.assertRaises(KeyError, nest.add, "number", values, update=True)
 
 
 class IsIterTestCase(unittest.TestCase):

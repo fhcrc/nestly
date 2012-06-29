@@ -91,8 +91,9 @@ class Nest(object):
         self.indent = indent
         self.fail_on_clash = fail_on_clash
         self.warn_on_clash = warn_on_clash
-        self._levels = []
-        self.base_dict = base_dict or collections.OrderedDict()
+        if base_dict is None:
+            base_dict = collections.OrderedDict()
+        self._controls = [('', base_dict)]
 
     def iter(self, root=None):
         """
@@ -102,47 +103,10 @@ class Nest(object):
         :param root: Root directory
         :rtype: Generator of ``(directory, control_dictionary)`` tuples.
         """
-        def inner(control, nestables, dirs=None):
-            #FIXME: This is messy
-            if not dirs:
-                dirs = []
-            if nestables:
-                # Still more nestables to consume.
-                n = nestables[0]
-
-                result = n.nestable(control)
-
-                for r in result:
-                    ctl = control.copy()
-                    if n.update:
-                        # Make sure expected key exists
-                        if not n.name in r:
-                            raise KeyError("Missing key for {0}".format(n.name))
-
-                        # Check for collisions
-                        u = frozenset(control.keys()) & frozenset(r.keys())
-                        if u:
-                            if self.fail_on_clash:
-                                raise KeyError("Key overlap: {0}".format(u))
-                            elif self.warn_on_clash:
-                                #FIXME: Something better here
-                                print >>sys.stderr, "Key overlap:", u
-                        ctl.update(r)
-
-                        # For directory making below
-                        r = r[n.name]
-                    else:
-                        ctl[n.name] = r
-
-                    new_dirs = (dirs + [n.label_func(r)] if n.create_dir
-                                else dirs[:])
-                    for d, c in inner(ctl, nestables[1:], new_dirs):
-                        yield d, c
-            else:
-                # At leaf node
-                yield os.path.join(root or '', *dirs), control
-
-        return inner(self.base_dict, self._levels[:])
+        if root is None:
+            return iter(self._controls)
+        return ((os.path.join(root, outdir), control)
+                for outdir, control in self._controls)
 
     def __iter__(self):
         """
@@ -198,8 +162,34 @@ class Nest(object):
             nestable = _repeat_iter(old_nestable)
         if template_subs:
             nestable = _templated(nestable)
-        self._levels.append(_Nestable(name, nestable, create_dir, update,
-                                      label_func))
+
+        new_controls = []
+        for outdir, control in self._controls:
+            for r in nestable(control):
+                new_outdir, new_control = outdir, control.copy()
+                if update:
+                    # Make sure expected key exists
+                    if name not in r:
+                        raise KeyError("Missing key for {0}".format(name))
+                    # Check for collisions
+                    u = frozenset(control.keys()) & frozenset(r.keys())
+                    if u:
+                        msg = "Key overlap: {0}".format(u)
+                        if self.fail_on_clash:
+                            raise KeyError(msg)
+                        elif self.warn_on_clash:
+                            warnings.warn(msg)
+                    new_control.update(r)
+                    to_label = r[name]
+                else:
+                    new_control[name] = to_label = r
+
+                if create_dir:
+                    new_outdir = os.path.join(outdir, label_func(to_label))
+                new_controls.append((new_outdir, new_control))
+
+        self._controls = new_controls
+
 
 def nest_map(control_iter, map_fn):
     """
