@@ -14,11 +14,18 @@ nest = Nest()
 # Simplest case: Levels are added with a name and an iterable
 nest.add('strategy', ('exhaustive', 'approximate'))
 
-# Items can update the control dictionary
+# Sometimes it's useful to add multiple keys to the nest in one operation, e.g.
+# for grouping related data.
+# This can be done by passing an iterable of dictionaries to the `Nest.add` call,
+# each containing at least the named key, along with the `update=True` flag.
+#
+# Here, 'run_count' is the named key, and will be used to create a directory in the nest,
+# and the value of 'function' will be added to each control dictionary as well.
 nest.add('run_count', [{'run_count': 10**i, 'function': 'pow'}
                        for i in xrange(3)], update=True)
 
-# label_func is applied to each item create a directory name
+# label_func can be used to generate a meaningful name. Here, it strips the all
+# but the file name from the file path
 nest.add('input_file', glob.glob(os.path.join(input_dir, 'file*')),
         label_func=os.path.basename)
 
