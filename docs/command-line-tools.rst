@@ -41,13 +41,10 @@ Help
     usage: nestrun.py [-h] [-j N] [--template 'template text'] [--stop-on-error]
                       [--template-file FILE] [--save-cmd-file SAVECMD_FILE]
                       [--log-file LOG_FILE | --no-log] [--dry-run]
-                      [--summary-file SUMMARY_FILE]
-                      json_files [json_files ...]
+                      [--summary-file SUMMARY_FILE] [-d DIR]
+                      [control_files [control_files ...]]
 
     nestrun - substitute values into a template and run commands in parallel.
-
-    positional arguments:
-      json_files            Nestly control dictionaries
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -70,13 +67,19 @@ Help
       --summary-file SUMMARY_FILE
                             Write a summary of the run to the specified file
 
+    Control files:
+      control_files         Nestly control dictionaries
+      -d DIR, --directory DIR
+                            Run on all control files under DIR. May be used in
+                            place of specifying control files.
+
 ``nestagg``
 -----------
 
 The ``nestagg`` command provides a mechanism for combining results of multiple
-runs.  Currently, the only supported action is merging delimited files from a
-set of leaves, adding values from the control dictionary on each.
-
+runs, via a subcommand interface.  Currently, the only supported action is
+merging delimited files from a set of leaves, adding values from the control
+dictionary on each.  This is performed via ``nestagg delim``.
 
 Help
 ^^^^
@@ -84,8 +87,8 @@ Help
 ::
 
     usage: nestagg.py delim [-h] [-k KEYS | -x EXCLUDE_KEYS] [-m {fail,warn}]
-                            [-s SEPARATOR] [-t] [-o OUTPUT]
-                            file_template control.json [control.json ...]
+                            [-d DIR] [-s SEPARATOR] [-t] [-o OUTPUT]
+                            file_template [control.json [control.json ...]]
 
     positional arguments:
       file_template         Template for the delimited file to read in each
@@ -101,6 +104,9 @@ Help
                             include [default: None]
       -m {fail,warn}, --missing-action {fail,warn}
                             Action to take when a file is missing [default: fail]
+      -d DIR, --directory DIR
+                            Run on all control files under DIR. May be used in
+                            place of specifying control files.
       -s SEPARATOR, --separator SEPARATOR
                             Separator [default: ,]
       -t, --tab             Files are tab-separated
