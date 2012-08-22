@@ -19,6 +19,8 @@ bn = os.path.basename
 # directories "ethnicity" and "dietary".
 nest.add('ethnicity', glob.glob(os.path.join(startersdir, '*')),
     label_func=bn)
+# In the `dietary` key, the anonymous function `lambda ...` chooses as values
+# names of directories the current `ethnicity` directory
 nest.add('dietary', lambda c: glob.glob(os.path.join(c['ethnicity'], '*')),
     label_func=bn)
 

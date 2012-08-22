@@ -26,7 +26,9 @@ nest.add('input_file', glob.glob(os.path.join(input_dir, 'file*')),
 nest.add('base_dir', [os.getcwd()], create_dir=False)
 
 # Any function taking one argument (control dictionary) and returning an
-# iterable may also be used:
+# iterable may also be used.
+# This one just takes the logarithm of 'run_count'.
+# Since the function only returns a single result, we don't create a new directory.
 def log_run_count(c):
     run_count = c['run_count']
     return [math.log(run_count, 10)]
