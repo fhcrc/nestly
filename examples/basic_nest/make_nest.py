@@ -20,8 +20,8 @@ nest.add('strategy', ('exhaustive', 'approximate'))
 # each containing at least the named key, along with the `update=True` flag.
 #
 # Here, 'run_count' is the named key, and will be used to create a directory in the nest,
-# and the value of 'function' will be added to each control dictionary as well.
-nest.add('run_count', [{'run_count': 10**i, 'function': 'pow'}
+# and the value of 'power' will be added to each control dictionary as well.
+nest.add('run_count', [{'run_count': 10**i, 'power': i}
                        for i in xrange(3)], update=True)
 
 # label_func can be used to generate a meaningful name. Here, it strips the all
