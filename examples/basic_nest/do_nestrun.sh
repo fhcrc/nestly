@@ -2,12 +2,10 @@
 
 set -e
 set -u
+set -x
 
-CONTROLS=$(find runs -name control.json)
-echo $CONTROLS
-
-nestrun --processes 2 --template-file echo.sh $CONTROLS
+nestrun --processes 2 --template-file echo.sh -d runs
 
 # Merge the CSV files named '{strategy}.csv' (where strategy value is taken
 # from the control file)
-nestagg delim '{strategy}.csv' $CONTROLS -o aggregated.csv
+nestagg delim '{strategy}.csv' -d runs -o aggregated.csv

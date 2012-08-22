@@ -17,6 +17,7 @@ import signal
 import subprocess
 import sys
 
+from nestly.core import control_iter
 
 # Constants to be used as defaults.
 MAX_PROCS = 2                    # Set the default maximum number of child processes that can be spawned.
@@ -323,9 +324,21 @@ def parse_arguments():
             does not execute commands.""", default=False)
     parser.add_argument('--summary-file', type=argparse.FileType('w'),
             help="""Write a summary of the run to the specified file""")
-    parser.add_argument('json_files', type=extant_file, nargs='+',
-            help='Nestly control dictionaries')
+
+    ctrl_group = parser.add_argument_group('Control files')
+    ctrl_group.add_argument('json_files', metavar='control_files', type=extant_file,
+            nargs='*', help="""Nestly control dictionaries""")
+    ctrl_group.add_argument('-d', '--directory', help="""Run on all control
+            files under %(metavar)s. May be used in place of specifying control
+            files.""", metavar='DIR')
     arguments = parser.parse_args()
+
+
+    # Load controls
+    if bool(arguments.directory) == bool(arguments.json_files):
+        parser.error('Exactly one of `-d` and control_files must be specified.')
+    elif arguments.directory:
+        arguments.json_files.extend(control_iter(arguments.directory))
 
     template = arguments.template
 
@@ -339,7 +352,7 @@ def parse_arguments():
             # If using the default argument, the template must be executable:
             if (not os.access(arguments.template_file, os.X_OK) and not
                     arguments.dry_run):
-                raise SystemExit(
+                parser.error(
                         "{0} is not executable. Specify a template.".format(
                     arguments.template_file))
 
@@ -352,12 +365,9 @@ def parse_arguments():
     if arguments.local_procs is not None:
         max_procs = arguments.local_procs
 
-    if arguments.dry_run is not None:
-        dry_run = arguments.dry_run
-
     # Create a dictionary that will be shared amongst all forked processes.
     data = {}
-    data['dry_run'] = dry_run
+    data['dry_run'] = arguments.dry_run
     data['start_directory'] = os.getcwd()
     data['template'] = template
     data['template_file'] = arguments.template_file
