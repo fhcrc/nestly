@@ -2,7 +2,7 @@
 nestly
 ======
 
-Nestly is a collection of functions designed to ease running software with combinatorial choices of parameters.
+``nestly`` is a collection of functions designed to ease running software with combinatorial choices of parameters.
 It can easily do so for "cartesian products" of parameter choices, but can do much more-- arbitrary "backwards-looking" dependencies can be used.
 
 The vision here is that we take a fixed set of parameters and generate a single type of output for each defined combination, which can then be combined in some way for comparison and retrieval.
@@ -13,10 +13,16 @@ The `full documentation`_ is available on Github pages.
 Installing
 ==========
 
+
 The easiest way is with `pip`_::
 
     $ pip install nestly
 
+Or, for the latest commit from master::
+
+    $ pip install git+git://github.com/fhcrc/nestly.git@master
+
+Python 2.7 is required.
 
 Introductory example
 ====================
