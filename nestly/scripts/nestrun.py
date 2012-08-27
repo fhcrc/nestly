@@ -33,7 +33,7 @@ def _terminate_procs(procs):
         logging.debug("[%s] SIGTERM", proc.pid)
         try:
             proc.terminate()
-        except OSError, e:
+        except OSError as e:
             # we don't care if the process we tried to kill didn't exist.
             if e.errno != errno.ESRCH:
                 raise
@@ -98,7 +98,7 @@ def invoke(max_procs, data, json_files):
 
             try:
                 pid, status = os.wait()
-            except OSError, e:
+            except OSError as e:
                 # wait(2) raising ECHILD means there's no child processes to wait
                 # for anymore, so we're done.
                 if e.errno == errno.ECHILD:
@@ -237,7 +237,7 @@ def worker(data, json_file):
         # Copy permissions to destination
         try:
             shutil.copymode(template_file, output_template)
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.EPERM:
                 logging.warn("Couldn't set permissions on %s. "
                         "Continuing with existing permissions",
@@ -262,7 +262,7 @@ def worker(data, json_file):
                     try:
                         pr = subprocess.Popen(
                             cmd, stdout=log, stderr=log, cwd=p())
-                    except OSError, e:
+                    except OSError as e:
                         if e.errno != errno.EINTR:
                             raise
                         continue
@@ -271,7 +271,7 @@ def worker(data, json_file):
                 logging.info('[%d] Started %s in %s', pr.pid, work, p())
                 nestproc = NestlyProcess(cmd, p(), pr)
                 yield nestproc
-        except Exception, e:
+        except Exception as e:
             # Seems useful to print the command that failed to make the
             # traceback more meaningful.  Note that error output could get
             # mixed up if two processes encounter errors at the same instant

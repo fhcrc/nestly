@@ -32,7 +32,7 @@ def _warn_on_io(fn):
         try:
             for i in r:
                 yield i
-        except IOError, e:
+        except IOError as e:
             warn(str(e))
     return f
 

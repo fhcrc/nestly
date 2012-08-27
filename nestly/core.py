@@ -9,7 +9,6 @@ import itertools
 import json
 import os
 import os.path
-import sys
 import warnings
 
 CONTROL_NAME = 'control.json'
@@ -34,7 +33,7 @@ def _mkdirs(d):
     """
     try:
         os.makedirs(d)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise
 

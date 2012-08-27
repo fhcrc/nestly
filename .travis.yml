@@ -10,4 +10,5 @@ install:
 script: nosetests
 
 notifications:
-  email: false
+  email:
+    - "cmccoy@fhcrc.org"

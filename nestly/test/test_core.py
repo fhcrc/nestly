@@ -17,7 +17,14 @@ def tempdir():
     finally:
         shutil.rmtree(td)
 
-class SimpleNestTestCase(unittest.TestCase):
+class NestCompareMixIn(object):
+    def assertNestsEqual(self, expected, actual):
+        self.assertEqual(len(expected), len(actual))
+        for (ie, de), (ia, da) in zip(expected, actual):
+            self.assertEqual(ie, ia)
+            self.assertEqual(de, da)
+
+class SimpleNestTestCase(NestCompareMixIn, unittest.TestCase):
 
     def setUp(self):
         nest = core.Nest()
@@ -31,18 +38,18 @@ class SimpleNestTestCase(unittest.TestCase):
 
     def test_iter_once(self):
         actual = list(self.nest.iter())
-        self.assertEqual(self.expected, actual)
+        self.assertNestsEqual(self.expected, actual)
 
     def test_iter_repeatable(self):
         # Run once
         list(self.nest.iter())
         actual = list(self.nest.iter())
-        self.assertEqual(self.expected, actual)
+        self.assertNestsEqual(self.expected, actual)
 
     def test_iter_prefix(self):
         actual = list(self.nest.iter('test2/test'))
         expected = [('test2/test/' + a, b) for a, b in self.expected]
-        self.assertEqual(expected, actual)
+        self.assertNestsEqual(expected, actual)
 
     def test_build(self):
         with tempdir() as td:
@@ -67,7 +74,7 @@ class SimpleNestTestCase(unittest.TestCase):
             self.assertEqual(1, len(w))
 
 
-class TemplateTestCase(unittest.TestCase):
+class TemplateTestCase(NestCompareMixIn, unittest.TestCase):
     """
     Test template substitution
     """
@@ -79,10 +86,10 @@ class TemplateTestCase(unittest.TestCase):
         actual = list(nest.iter())
         expected = [('1', {'dirname': 'number-1', 'number': 1}),
                     ('2', {'dirname': 'number-2', 'number': 2})]
-        self.assertEqual(expected, actual)
+        self.assertNestsEqual(expected, actual)
 
 
-class UpdateTestCase(unittest.TestCase):
+class UpdateTestCase(NestCompareMixIn, unittest.TestCase):
 
     def test_update(self):
         nest = core.Nest()
@@ -90,8 +97,8 @@ class UpdateTestCase(unittest.TestCase):
                   {'number': 2, 'description': 'two'}]
         nest.add("number", values, update=True)
         actual = list(nest.iter())
-        expected = zip(('1', '2'), values)
-        self.assertEqual(expected, actual)
+        expected = list(zip(('1', '2'), values))
+        self.assertNestsEqual(expected, actual)
 
     def test_update_nokey(self):
         nest = core.Nest()

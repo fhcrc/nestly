@@ -3,7 +3,6 @@ import itertools
 import errno
 import glob
 import json
-import re
 import os
 import warnings
 
@@ -26,7 +25,7 @@ def _nvd_to_jsonfile(fname, d):
 def _create_dir(dirname):
     try:
         os.makedirs(dirname)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise
 
