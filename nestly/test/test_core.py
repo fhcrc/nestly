@@ -161,3 +161,12 @@ class NestMapTestCase(SimpleNestMixin, unittest.TestCase):
         expected = [1, 2]
         self.assertEqual(expected, actual)
 
+def suite():
+    suite = unittest.TestSuite()
+    for cls in [IsIterTestCase,
+            NestMapTestCase,
+            SimpleNestTestCase,
+            TemplateTestCase,
+            UpdateTestCase]:
+        suite.addTest(unittest.makeSuite(cls))
+    return suite
