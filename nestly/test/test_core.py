@@ -119,7 +119,7 @@ class IsIterTestCase(unittest.TestCase):
         self.assertTrue(core._is_iter([1, 2, 3]))
 
     def test_generator(self):
-        g = (i for i in xrange(4))
+        g = (i for i in range(4))
         self.assertTrue(core._is_iter(g))
 
         # Can't consume

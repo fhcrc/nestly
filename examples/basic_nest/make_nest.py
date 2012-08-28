@@ -22,7 +22,7 @@ nest.add('strategy', ('exhaustive', 'approximate'))
 # Here, 'run_count' is the named key, and will be used to create a directory in the nest,
 # and the value of 'power' will be added to each control dictionary as well.
 nest.add('run_count', [{'run_count': 10**i, 'power': i}
-                       for i in xrange(3)], update=True)
+                       for i in range(3)], update=True)
 
 # label_func can be used to generate a meaningful name. Here, it strips the all
 # but the file name from the file path

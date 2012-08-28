@@ -5,11 +5,12 @@ Core functions for building nests.
 import collections
 import errno
 import functools
-import itertools
 import json
 import os
 import os.path
 import warnings
+
+from ._py3 import is_string, imap
 
 CONTROL_NAME = 'control.json'
 
@@ -154,7 +155,7 @@ class Nest(object):
         if not callable(nestable):
             if not _is_iter(nestable):
                 raise ValueError("Invalid nestable: " + str(nestable))
-            if isinstance(nestable, basestring):
+            if is_string(nestable):
                 warnings.warn(
                         "Passed a string as an iterable for name {0}".format(name))
             old_nestable = nestable
@@ -219,7 +220,7 @@ def nest_map(control_iter, map_fn):
         dn = os.path.dirname(control_path)
         return map_fn(dn, control)
 
-    mapped = itertools.imap(fn, control_iter)
+    mapped = imap(fn, control_iter)
     return mapped
 
 def control_iter(base_dir, control_name=CONTROL_NAME):

@@ -39,43 +39,43 @@ def _terminate_procs(procs):
                 raise
     sys.exit(1)
 
-def sigterm_handler(nonlocal, signum, frame):
+def sigterm_handler(nlocal, signum, frame):
     logging.warning('SIGTERM received; no longer spawning jobs')
-    nonlocal['spawn_jobs'] = False
+    nlocal['spawn_jobs'] = False
 
 def sigusr1_handler(running_procs, signum, frame):
     for pid, (proc, _) in running_procs.iteritems():
         sys.stderr.write('%5d - in %s\n' % (pid, proc.working_dir))
     sys.stderr.flush()  # just in case it's being buffered by something
 
-def sigint_handler(nonlocal, write_this_summary, running_procs, signum, frame):
-    if nonlocal['received_SIGINT']:
+def sigint_handler(nlocal, write_this_summary, running_procs, signum, frame):
+    if nlocal['received_SIGINT']:
         logging.warning('SIGINT received; terminating')
         _terminate_procs(running_procs)
         write_this_summary()
         sys.exit(0)
     else:
         logging.warning('SIGINT received; send again to terminate')
-        nonlocal['received_SIGINT'] = True
+        nlocal['received_SIGINT'] = True
 
 def invoke(max_procs, data, json_files):
-    nonlocal = {'spawn_jobs': True, 'received_SIGINT': False}
+    nlocal = {'spawn_jobs': True, 'received_SIGINT': False}
     running_procs = {}
     all_procs = []
     def write_this_summary():
         write_summary(all_procs, data['summary_file'])
 
-    signal.signal(signal.SIGTERM, functools.partial(sigterm_handler, nonlocal))
+    signal.signal(signal.SIGTERM, functools.partial(sigterm_handler, nlocal))
     signal.signal(signal.SIGUSR1,
         functools.partial(sigusr1_handler, running_procs))
     signal.signal(signal.SIGINT,
-        functools.partial(sigint_handler, nonlocal, write_this_summary,
+        functools.partial(sigint_handler, nlocal, write_this_summary,
                           running_procs))
 
     files = iter(json_files)
     try:
         while True:
-            while nonlocal['spawn_jobs'] and len(running_procs) < max_procs:
+            while nlocal['spawn_jobs'] and len(running_procs) < max_procs:
                 try:
                     json_file = files.next()
                 except StopIteration:

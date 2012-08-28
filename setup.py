@@ -13,6 +13,10 @@ import nestly
 if sys.version_info < (2, 7, 0):
     raise Exception('Python 2.7 is required.')
 
+extra = {}
+if sys.version_info >= (3, 0, 0):
+    extra['use_2to3'] = True
+
 setup(name='nestly',
       version=nestly.__version__,
       description="""Nestly is a collection of functions designed to make
@@ -27,4 +31,5 @@ setup(name='nestly',
               'nestagg = nestly.scripts.nestagg:main',
           ]
       },
+      **extra
       )
