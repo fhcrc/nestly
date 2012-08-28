@@ -118,9 +118,13 @@ SCons integration
 
 There is also a ``nestly.scons`` module to integrate nestly with the ``make`` replacement SCons_.
 
+License
+=======
+
+``nestly`` source code is freely available under the `MIT License`_.
 
 .. _`Python Formatter documentation`: http://docs.python.org/library/string.html#formatstrings
 .. _`full documentation`: http://fhcrc.github.com/nestly/
 .. _`pip`: http://www.pip-installer.org
 .. _Scons: http://scons.org/
-
+.. _`MIT License`: http://www.opensource.org/licenses/mit-license.html
