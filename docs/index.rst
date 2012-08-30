@@ -11,19 +11,20 @@ choices of parameters. It can easily do so for "cartesian products" of
 parameter choices, but can do much more-- arbitrary "backwards-looking"
 dependencies can be used.
 
-To find out more, look in the ``examples/`` subdirectory.
+To find out more, check out the the :ref:`examples`.
 
 Contents:
 
 .. toctree::
    :maxdepth: 2
 
+   examples
+
    nestly
    command-line-tools
    scons
 
    modules
-   examples
 
 Indices and tables
 ==================
