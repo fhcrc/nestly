@@ -1,6 +1,10 @@
 Examples
 ========
 
+.. toctree::
+
+  adcl
+
 Building Nests
 --------------
 

@@ -38,6 +38,10 @@ def k(c):
     n_leaves = c['n_leaves']
     return range(1, n_leaves, n_leaves // 10)
 
+# Add `k` to the nest.
+# This will call k with each combination of (algorithm, tree, n_leaves).
+# Each value returned will be used as a possible value for `k`
 n.add('k', k)
 
+# Build the nest:
 n.build('runs')
