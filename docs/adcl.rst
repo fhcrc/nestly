@@ -91,11 +91,11 @@ Aggregating results
 
 Now we have a little CSV file in each leaf directory, containing the running time::
 
-    |----------+--------+--------+-------------|
-    |  elapsed | avgmem | maxmem | exitstatus  |
-    |----------+--------+--------+-------------|
-    |  17.78   | 0      | 471648 | 0           |
-    |----------+--------+--------+-------------|
+    |----------+--------+-------------|
+    |  elapsed | maxmem | exitstatus  |
+    |----------+--------+-------------|
+    |  17.78   | 471648 | 0           |
+    |----------+--------+-------------|
 
 To analyze these en-masse, we need to combine them and add information about the parameters used to generate them. The ``nestagg`` script does just this.
 
@@ -105,15 +105,15 @@ To analyze these en-masse, we need to combine them and add information about the
 
 ``results.csv``::
 
-     |----------+--------+---------+------------+-----------+---------------------------------------+------|
-     |  elapsed | avgmem | maxmem  | exitstatus | algorithm | tree                                  | k    |
-     |----------+--------+---------+------------+-----------+---------------------------------------+------|
-     |  17.04   | 0      | 941328  | 0          | full      | .../examples/adcl/trees/random001.tre | 1    |
-     |  20.86   | 0      | 944336  | 0          | full      | .../examples/adcl/trees/random001.tre | 101  |
-     |  31.75   | 0      | 944320  | 0          | full      | .../examples/adcl/trees/random001.tre | 201  |
-     |  39.34   | 0      | 980048  | 0          | full      | .../examples/adcl/trees/random001.tre | 301  |
-     |  37.84   | 0      | 1118960 | 0          | full      | .../examples/adcl/trees/random001.tre | 401  |
-     |  42.15   | 0      | 1382000 | 0          | full      | .../examples/adcl/trees/random001.tre | 501  |
+     |----------+---------+------------+-----------+---------------------------------------+------|
+     |  elapsed | maxmem  | exitstatus | algorithm | tree                                  | k    |
+     |----------+---------+------------+-----------+---------------------------------------+------|
+     |  17.04   | 941328  | 0          | full      | .../examples/adcl/trees/random001.tre | 1    |
+     |  20.86   | 944336  | 0          | full      | .../examples/adcl/trees/random001.tre | 101  |
+     |  31.75   | 944320  | 0          | full      | .../examples/adcl/trees/random001.tre | 201  |
+     |  39.34   | 980048  | 0          | full      | .../examples/adcl/trees/random001.tre | 301  |
+     |  37.84   | 1118960 | 0          | full      | .../examples/adcl/trees/random001.tre | 401  |
+     |  42.15   | 1382000 | 0          | full      | .../examples/adcl/trees/random001.tre | 501  |
      etc
 
 Now we have something we can look at!
