@@ -1,5 +1,6 @@
 """SCons integration for nestly."""
 from collections import OrderedDict
+import os
 
 def name_targets(func):
     """
@@ -54,10 +55,9 @@ class SConsWrap(object):
         access.
         """
         def deco(func):
-            targets = [(control, func(dir, control))
-                       for dir, control in self.nest.iter(self.dest_dir)]
             def nestfunc(control):
-                return [next(target for c, target in targets if control == c)]
+                destdir = os.path.join(self.dest_dir, control['OUTDIR'])
+                return [func(destdir, control)]
             self.nest.add(name or func.__name__, nestfunc, create_dir=False)
             return func
         return deco

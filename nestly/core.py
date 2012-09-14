@@ -186,6 +186,7 @@ class Nest(object):
 
                 if create_dir:
                     new_outdir = os.path.join(outdir, label_func(to_label))
+                new_control['OUTDIR'] = new_outdir
                 new_controls.append((new_outdir, new_control))
 
         self._controls = new_controls
