@@ -113,6 +113,22 @@ class UpdateTestCase(NestCompareMixIn, unittest.TestCase):
         self.assertRaises(KeyError, nest.add, "number", values, update=True)
 
 
+class OutdirTestCase(NestCompareMixIn, unittest.TestCase):
+
+    def test_outdir(self):
+        nest = core.Nest(include_outdir=True)
+        nest.add('a', [1, 2])
+        nest.add('b', [3, 4])
+        actual = list(nest.iter())
+        expected = [
+            ('1/3', dict(a=1, b=3, OUTDIR='1/3')),
+            ('1/4', dict(a=1, b=4, OUTDIR='1/4')),
+            ('2/3', dict(a=2, b=3, OUTDIR='2/3')),
+            ('2/4', dict(a=2, b=4, OUTDIR='2/4')),
+        ]
+        self.assertNestsEqual(expected, actual)
+
+
 class IsIterTestCase(unittest.TestCase):
 
     def test_list(self):

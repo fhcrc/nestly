@@ -28,6 +28,7 @@ class SConsWrap(object):
         directories.
         """
         self.nest = nest
+        self.nest.include_outdir = True
         self.dest_dir = dest_dir
         self.aggregates = OrderedDict()
 

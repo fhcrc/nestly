@@ -86,11 +86,13 @@ class Nest(object):
         (default: ``{}``)
     """
     def __init__(self, control_name=CONTROL_NAME, indent=2,
-            fail_on_clash=False, warn_on_clash=True, base_dict=None):
+            fail_on_clash=False, warn_on_clash=True, base_dict=None,
+            include_outdir=False):
         self.control_name = control_name
         self.indent = indent
         self.fail_on_clash = fail_on_clash
         self.warn_on_clash = warn_on_clash
+        self.include_outdir = include_outdir
         if base_dict is None:
             base_dict = collections.OrderedDict()
         self._controls = [('', base_dict)]
@@ -186,7 +188,8 @@ class Nest(object):
 
                 if create_dir:
                     new_outdir = os.path.join(outdir, label_func(to_label))
-                new_control['OUTDIR'] = new_outdir
+                if self.include_outdir:
+                    new_control['OUTDIR'] = new_outdir
                 new_controls.append((new_outdir, new_control))
 
         self._controls = new_controls
