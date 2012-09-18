@@ -19,6 +19,9 @@ class SConsWrap(object):
 
     This class wraps a Nest in order to provide methods which are useful for
     using nestly with SCons.
+
+    A Nest passed to SConsWrap must have been created with include_outdir=True,
+    which is the default.
     """
 
     def __init__(self, nest, dest_dir='.'):
@@ -28,7 +31,6 @@ class SConsWrap(object):
         directories.
         """
         self.nest = nest
-        self.nest.include_outdir = True
         self.dest_dir = dest_dir
         self.aggregates = OrderedDict()
 

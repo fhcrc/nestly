@@ -24,9 +24,11 @@ is called.
 Constructing an ``SConsWrap``
 =============================
 
-``SConsWrap`` objects wrap and modify a ``Nest`` object. Optionally, a
-destination directory can be given to the ``SConsWrap`` which will be passed to
-:meth:`Nest.iter() <nestly.core.Nest.iter>`::
+``SConsWrap`` objects wrap and modify a ``Nest`` object. Each ``Nest`` object
+needs to have been created with ``include_outdir=True``, which is the default.
+
+Optionally, a destination directory can be given to the ``SConsWrap`` which
+will be passed to :meth:`Nest.iter() <nestly.core.Nest.iter>`::
 
     >>> nest = Nest()
     >>> wrap = SConsWrap(nest, dest_dir='build')

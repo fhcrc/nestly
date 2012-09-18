@@ -84,10 +84,12 @@ class Nest(object):
         a previous value
     :param base_dict: Base dictionary to start all control dictionaries from
         (default: ``{}``)
+    :param include_outdir: If true, include an OUTDIR key in every control
+        indicating the directory this control would be written to.
     """
     def __init__(self, control_name=CONTROL_NAME, indent=2,
             fail_on_clash=False, warn_on_clash=True, base_dict=None,
-            include_outdir=False):
+            include_outdir=True):
         self.control_name = control_name
         self.indent = indent
         self.fail_on_clash = fail_on_clash
