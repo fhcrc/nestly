@@ -27,7 +27,7 @@ class NestCompareMixIn(object):
 class SimpleNestTestCase(NestCompareMixIn, unittest.TestCase):
 
     def setUp(self):
-        nest = core.Nest()
+        nest = core.Nest(include_outdir=False)
         nest.add("number", (1, 10))
         nest.add("name", ("a", "b"))
         self.nest = nest
@@ -79,7 +79,7 @@ class TemplateTestCase(NestCompareMixIn, unittest.TestCase):
     Test template substitution
     """
     def test_template(self):
-        nest = core.Nest()
+        nest = core.Nest(include_outdir=False)
         nest.add('number', [1, 2])
         nest.add('dirname', ['number-{number}'], template_subs=True,
                 create_dir=False)
@@ -92,7 +92,7 @@ class TemplateTestCase(NestCompareMixIn, unittest.TestCase):
 class UpdateTestCase(NestCompareMixIn, unittest.TestCase):
 
     def test_update(self):
-        nest = core.Nest()
+        nest = core.Nest(include_outdir=False)
         values = [{'number': 1, 'description': 'one'},
                   {'number': 2, 'description': 'two'}]
         nest.add("number", values, update=True)
@@ -101,12 +101,12 @@ class UpdateTestCase(NestCompareMixIn, unittest.TestCase):
         self.assertNestsEqual(expected, actual)
 
     def test_update_nokey(self):
-        nest = core.Nest()
+        nest = core.Nest(include_outdir=False)
         self.assertRaises(KeyError, nest.add,
                           "number", [{'description': 'one'}], update=True)
 
     def test_update_overwrite(self):
-        nest = core.Nest(fail_on_clash=True)
+        nest = core.Nest(fail_on_clash=True, include_outdir=False)
         nest.add("description", ['Test'])
         values = [{'number': 1, 'description': 'one'},
                   {'number': 2, 'description': 'two'}]
