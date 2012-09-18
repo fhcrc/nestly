@@ -65,9 +65,12 @@ function. As a result, the following example is also equivalent::
     def nest2(c):
         return ['  __' + c['nest1'], c['nest1'] + '__  ']
 
-:meth:`~SConsWrap.add_nest` must always be called before being applied as a
-decorator, though. ``@wrap.add_nest`` is not valid; the correct usage is
-``@wrap.add_nest()`` if no other parameters are specified.
+
+.. note ::
+
+  :meth:`~SConsWrap.add_nest` must always be called before being applied as a
+  decorator. ``@wrap.add_nest`` is not valid; the correct usage is
+  ``@wrap.add_nest()`` if no other parameters are specified.
 
 Adding targets
 ==============
