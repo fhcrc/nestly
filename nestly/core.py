@@ -95,6 +95,8 @@ class Nest(object):
         self.include_outdir = include_outdir
         if base_dict is None:
             base_dict = collections.OrderedDict()
+        if self.include_outdir:
+            base_dict['OUTDIR'] = ''
         self._controls = [('', base_dict)]
 
     def iter(self, root=None):
