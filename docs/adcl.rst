@@ -86,6 +86,9 @@ Running a script like ``time_rppr.sh`` on every experiment within a nest in para
 
 (this will take awhile)
 
+This command runs the shell script ``time_rppr.sh`` for each parameter choice, substituting the appropriate parameters.
+The ``-j 4`` flag indicates that 4 processors should be used.
+
 Aggregating results
 -------------------
 
@@ -103,7 +106,12 @@ To analyze these en-masse, we need to combine them and add information about the
 
    $ nestagg delim -d runs -o results.csv time.csv -k algorithm,k,tree
 
-``results.csv``::
+Where ``-d runs`` indicates the directory containing program runs; ``-o
+results.csv`` specifies where to write the output; ``time.csv`` gives the name
+of the file in each leaf directory, and ``-k algorithm,k,tree`` lists the
+parameters to add to each row of the CSV files.
+
+Looking at ``results.csv``::
 
      |----------+---------+------------+-----------+---------------------------------------+------|
      |  elapsed | maxmem  | exitstatus | algorithm | tree                                  | k    |
