@@ -1,6 +1,27 @@
 """SCons integration for nestly."""
 from collections import OrderedDict
+import json
 import os
+
+try:
+    import SCons.Node
+    import SCons.Node.FS
+    HAS_SCONS = True
+except ImportError:
+    import warnings
+    warnings.warn('Unable to import SCons. Some functionality not available.')
+    HAS_SCONS = False
+
+class SConsEncoder(json.JSONEncoder):
+    """
+    JSON Encoder which handles SCons objects.
+    """
+    def default(self, obj):
+        if isinstance(obj, SCons.Node.NodeList):
+            return list(obj)
+        elif isinstance(obj, (SCons.Node.FS.Entry, SCons.Node.FS.File)):
+            return str(obj)
+        return super(SConsEncoder, self).default(obj)
 
 def name_targets(func):
     """
@@ -115,3 +136,25 @@ class SConsWrap(object):
         """
         for aggregate in list(self.aggregates):
             self.finalize_aggregate(aggregate)
+
+    def add_controls(self, env, target_name='control', file_name='control.json',
+                     encoder_cls=SConsEncoder):
+        """
+        Adds a target to build a control file at each of the current leaves.
+
+        :param env: SCons Environment object
+        :param target_name: Name for target in nest
+        :param file_name: Name for output file.
+        """
+        if not HAS_SCONS:
+            raise ImportError('SCons not available')
+
+        @self.add_target(name=target_name)
+        def control(outdir, c):
+            def create_control_file(source, target, env):
+                target = str(target[0])
+                with open(target, 'w') as fp:
+                    json.dump(c, fp, indent=2, cls=encoder_cls)
+            return env.Command(os.path.join(outdir, file_name),
+                    [],
+                    create_control_file)[0]
