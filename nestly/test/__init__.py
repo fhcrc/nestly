@@ -1,10 +1,10 @@
 import unittest
 
-from . import test_core
+from . import test_core, test_scons
 
 def suite():
     suite = unittest.TestSuite()
-    for mod in [test_core]:
+    for mod in [test_core, test_scons]:
         suite.addTest(unittest.findTestCases(mod))
     return suite
 

@@ -100,7 +100,6 @@ class SConsWrap(object):
             return func
         return deco
 
-
     def add_aggregate(self, data_fac, name=None):
         """Add an aggregate target to this nest.
 
