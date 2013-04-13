@@ -89,7 +89,7 @@ class SConsWrap(object):
         def deco(func):
             def nestfunc(control):
                 env = environment.Clone()
-                for k, v in control.iteritems():
+                for k, v in control.items():
                     if k in env:
                         logger.warn("Overwriting previously bound value %s=%s", k, env[k])
                     env[k] = v
