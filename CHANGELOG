@@ -1,5 +1,5 @@
-0.4.0 (in development)
-======================
+0.4.0
+=====
 * Add SIG{INT,TERM,USR1} handling to nestrun (GH-9)
 * Add SCons integration via nestly.scons (GH-12)
 * Support for walking a directory in nestagg (GH-13)
