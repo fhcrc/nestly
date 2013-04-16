@@ -1,7 +1,11 @@
-0.4.0
-=====
+0.4.0 (in development)
+======================
 * Add SIG{INT,TERM,USR1} handling to nestrun (GH-9)
 * Add SCons integration via nestly.scons (GH-12)
+* Support for walking a directory in nestagg (GH-13)
+* Initial python 3, pypy support
+* Add an OUTDIR key to nest control files
+* Additional examples
 
 0.3.0
 =====
