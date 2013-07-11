@@ -1,6 +1,7 @@
 """SCons integration for nestly."""
-from collections import OrderedDict
 import logging
+import copy
+import core
 import os
 
 logger = logging.getLogger('nestly.scons')
@@ -36,20 +37,33 @@ class SConsWrap(object):
         """
         self.nest = nest
         self.dest_dir = dest_dir
-        self.aggregates = OrderedDict()
+        self.checkpoints = dict()
 
     def __iter__(self):
         "Iterate over the current controls."
         return self.nest.iter(self.dest_dir)
 
-    def add(self, *a, **kw):
-        "Call .add on the wrapped Nest."
-        return self.nest.add(*a, **kw)
+    def add(self, name, nestable, **kw):
+        """Adds a level to the nesting and creates a checkpoint that can be reverted
+        to later for aggregation by calling `self.close(name)`."""
+        if core._is_iter(nestable):
+            self.checkpoints[name] = self.nest
+            self.nest = copy.copy(self.nest)
+        return self.nest.add(name, nestable, **kw)
+
+    def close(self, name):
+        """Reverts to the nest stage just before the corresponding call of `add_level`.
+        However, any aggregate collections which have been worked on will still be
+        accessible, and can be called operated on together after calling this method."""
+        try:
+            self.nest = self.checkpoints[name]
+        except KeyError:
+            raise ValueError, "Don't have a checkpoint for level {}".format(name)
 
     def add_nest(self, name=None, **kw):
         "A simple decorator which wraps nest.add."
         def deco(func):
-            self.nest.add(name or func.__name__, func, **kw)
+            self.add(name or func.__name__, func, **kw)
             return func
         return deco
 
@@ -100,53 +114,22 @@ class SConsWrap(object):
             return func
         return deco
 
-    def add_aggregate(self, data_fac, name=None):
+    def add_aggregate(self, name, data_fac):
         """Add an aggregate target to this nest.
 
-        The first argument is a nullary factory function which will be called
+        The second argument is a nullary factory function which will be called
         immediately for each of the current control dictionaries and stored in
-        each dictionary with the given name like in ``add_target``. After
-        ``finalize_aggregate`` or ``finalize_all_aggregates`` are called, the
-        decorated function will then be called in the same way as
-        ``add_target``, except with an additional argument: the value which was
-        returned by the factory function.
+        each dictionary with the given name like in ``add_target``. 
 
-        Since nests added after the aggregate can access the factory function's
-        value, it can be mutated to provide additional values for use when the
-        decorated function is called.
+        Since nests added after the aggregate can access the construct returned by the
+        factory function value, it can be mutated to provide additional values for
+        use when the decorated function is called.
+
+        To do something with the aggregates, you must close close nest levels created
+        between addition of the aggregate and then can add any normal targets you would
+        like which take advantage of the targets added to the data structure.
         """
-        def deco(func):
-            agg_name = name or func.__name__
-            finalizers = self.aggregates[agg_name] = []
-            @self.add_target(agg_name)
-            def wrap(outdir, c):
-                data = data_fac()
-                def finalize():
-                    return func(outdir, c, data)
-                finalizers.append(finalize)
-                return data
-            return wrap
-        return deco
+        @self.add_target(name)
+        def wrap(outdir, c):
+            return data_fac()
 
-    def finalize_aggregate(self, aggregate):
-        """Call the finalizers for one particular aggregate.
-
-        Finalizing an aggregate this way means that it will not be finalized by
-        any future calls to ``finalize_all_aggregates``.
-        """
-        for finalizer in self.aggregates.pop(aggregate):
-            finalizer()
-
-    def finalize_all_aggregates(self):
-        """Call the finalizers for all defined aggregates.
-
-        If any aggregates have been specifically finalized by
-        ``finalize_aggregate``, they will not be finalized again. This function
-        itself calls ``finalize_aggregate``; if ``finalize_all_aggregates`` is
-        called twice, aggregates will not be finalized twice.
-
-        Aggregates will be finalized in the same order in which they were
-        defined.
-        """
-        for aggregate in list(self.aggregates):
-            self.finalize_aggregate(aggregate)
