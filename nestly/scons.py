@@ -58,7 +58,7 @@ class SConsWrap(object):
         try:
             self.nest = self.checkpoints[name]
         except KeyError:
-            raise ValueError, "Don't have a checkpoint for level {}".format(name)
+            raise ValueError("Don't have a checkpoint for level {0}".format(name))
 
     def add_nest(self, name=None, **kw):
         "A simple decorator which wraps nest.add."
