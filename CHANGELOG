@@ -1,6 +1,8 @@
 0.5.0 (in development)
 ======================
 
+* Add ``SConsWrap.add_target_with_env`` (GH-14)
+
 0.4.0
 =====
 * Add SIG{INT,TERM,USR1} handling to nestrun (GH-9)

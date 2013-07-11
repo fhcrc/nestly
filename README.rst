@@ -13,7 +13,6 @@ The `full documentation`_ is available on Github pages.
 Installing
 ==========
 
-
 The easiest way is with `pip`_::
 
     $ pip install nestly
@@ -23,6 +22,15 @@ Or, for the latest commit from master::
     $ pip install git+git://github.com/fhcrc/nestly.git@master
 
 Python 2.7 is required.
+
+Running the tests
+=================
+
+Run::
+
+    python setup.py test
+
+The `mock`_ library is required, and will be downloaded if missing.
 
 Introductory example
 ====================
@@ -128,3 +136,4 @@ License
 .. _`pip`: http://www.pip-installer.org
 .. _Scons: http://scons.org/
 .. _`MIT License`: http://www.opensource.org/licenses/mit-license.html
+.. _mock: https://pypi.python.org/pypi/mock

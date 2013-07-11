@@ -31,5 +31,5 @@ setup(name='nestly',
               'nestagg = nestly.scripts.nestagg:main',
           ]
       },
-      **extra
-      )
+      tests_require=['mock>=1.0.1'],
+      **extra)
