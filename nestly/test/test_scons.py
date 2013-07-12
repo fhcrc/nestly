@@ -40,7 +40,7 @@ class CheckpointTestCase(unittest.TestCase):
     def test_close(self):
         n = self.nest
         w = scons.SConsWrap(n)
-        w.add('level1', xrange(2))
+        w.add('level1', range(2))
         w.add('level2', (1, 2, 3))
         @w.add_target()
         def key_file(outdir, c):

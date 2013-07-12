@@ -1,7 +1,7 @@
 """SCons integration for nestly."""
 import logging
 import copy
-import core
+from . import core
 import os
 
 logger = logging.getLogger('nestly.scons')
@@ -119,7 +119,7 @@ class SConsWrap(object):
 
         The second argument is a nullary factory function which will be called
         immediately for each of the current control dictionaries and stored in
-        each dictionary with the given name like in ``add_target``. 
+        each dictionary with the given name like in ``add_target``.
 
         Since nests added after the aggregate can access the construct returned by the
         factory function value, it can be mutated to provide additional values for
