@@ -5,7 +5,7 @@ from . import test_core, test_scons
 def suite():
     suite = unittest.TestSuite()
     for mod in [test_core, test_scons]:
-        suite.addTest(unittest.findTestCases(mod))
+        suite.addTest(mod.suite())
     return suite
 
 suite = suite()

@@ -24,7 +24,7 @@ setup(name='nestly',
       author='Erick Matsen',
       author_email='matsen@fhcrc.org',
       packages=find_packages(),
-      test_suite='nestly.test',
+      test_suite='nestly.test.suite',
       entry_points={
           'console_scripts': [
               'nestrun = nestly.scripts.nestrun:main',
