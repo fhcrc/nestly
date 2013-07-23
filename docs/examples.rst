@@ -6,7 +6,7 @@ Examples
 .. toctree::
 
   adcl
-  examples.building_nests
+  examples.building-nests
   examples.scons
 
 
