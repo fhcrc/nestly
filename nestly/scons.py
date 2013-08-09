@@ -3,8 +3,10 @@ import logging
 import copy
 import core
 import os
+from collections import OrderedDict
 
 logger = logging.getLogger('nestly.scons')
+
 
 def name_targets(func):
     """
@@ -37,7 +39,7 @@ class SConsWrap(object):
         """
         self.nest = nest
         self.dest_dir = dest_dir
-        self.checkpoints = dict()
+        self.checkpoints = OrderedDict()
 
     def __iter__(self):
         "Iterate over the current controls."
@@ -45,20 +47,30 @@ class SConsWrap(object):
 
     def add(self, name, nestable, **kw):
         """Adds a level to the nesting and creates a checkpoint that can be reverted
-        to later for aggregation by calling `self.close(name)`."""
+        to later for aggregation by calling `self.pop(name)`."""
         if core._is_iter(nestable):
             self.checkpoints[name] = self.nest
             self.nest = copy.copy(self.nest)
         return self.nest.add(name, nestable, **kw)
 
-    def close(self, name):
+    def pop(self, name=None):
         """Reverts to the nest stage just before the corresponding call of `add_level`.
         However, any aggregate collections which have been worked on will still be
-        accessible, and can be called operated on together after calling this method."""
-        try:
-            self.nest = self.checkpoints[name]
-        except KeyError:
-            raise ValueError("Don't have a checkpoint for level {0}".format(name))
+        accessible, and can be called operated on together after calling this method.
+        If no name is passed, will revert to the last nest level."""
+        if name:
+            # If name is specified want to keep popping things off until we pop the name off
+            while True:
+                try:
+                    key, nest_state = self.checkpoints.popitem()
+                except KeyError:
+                    # If 
+                    raise KeyError("Don't have a checkpoint for level {0}".format(name))
+                if key == name:
+                    self.nest = nest_state
+                    return
+        else:
+            self.nest = self.checkpoints.popitem()[1]
 
     def add_nest(self, name=None, **kw):
         "A simple decorator which wraps nest.add."
@@ -125,7 +137,7 @@ class SConsWrap(object):
         factory function value, it can be mutated to provide additional values for
         use when the decorated function is called.
 
-        To do something with the aggregates, you must close close nest levels created
+        To do something with the aggregates, you must :meth:`SConsWrap.pop` nest levels created
         between addition of the aggregate and then can add any normal targets you would
         like which take advantage of the targets added to the data structure.
         """

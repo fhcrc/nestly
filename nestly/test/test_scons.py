@@ -36,12 +36,13 @@ class CheckpointTestCase(unittest.TestCase):
     def setUp(self):
         self.nest = Nest()
         self.nest.add('list', [[]], create_dir=False)
+        self.w = scons.SConsWrap(self.nest)
+        self.w.add('level1', xrange(2))
+        self.w.add('level2', (1, 2, 3))
 
-    def test_close(self):
-        n = self.nest
-        w = scons.SConsWrap(n)
-        w.add('level1', xrange(2))
-        w.add('level2', (1, 2, 3))
+    def test_pop_with_name(self):
+        w = self.w
+
         @w.add_target()
         def key_file(outdir, c):
             c['list'].append(c['level2'])
@@ -54,17 +55,34 @@ class CheckpointTestCase(unittest.TestCase):
             return True
 
         n2 = w.nest
-        w.close('level1')
+        w.pop('level1')
         n1 = w.nest
 
-        self.assertTrue(n is n1)
-        self.assertFalse(n is n2)
+        # Want to make sure nested level checkpoints are popped off as well
+        self.assertEqual(len(w.checkpoints), 0)
+        # Make sure we have the right nest now
+        self.assertTrue(self.nest is n1)
+        self.assertFalse(self.nest is n2)
 
         @w.add_target()
         def assertion_after(outdir, c):
             self.assertFalse('key_file' in c)
             self.assertEqual(6, len(c['list']))
             self.assertFalse('level2' in c)
+
+    def test_pop_last(self):
+        w = self.w
+        w.pop()
+
+        # This time, there should be one checkpoint left
+        self.assertEqual(len(w.checkpoints), 1)
+        self.assertTrue('level1' in w.checkpoints)
+
+        @w.add_target()
+        def assertion_after(outdir, c):
+            self.assertFalse('level2' in c)
+            self.assertTrue('level1' in c)
+
 
 def suite():
     suite = unittest.TestSuite()
