@@ -37,7 +37,7 @@ class CheckpointTestCase(unittest.TestCase):
         self.nest = Nest()
         self.nest.add('list', [[]], create_dir=False)
         self.w = scons.SConsWrap(self.nest)
-        self.w.add('level1', xrange(2))
+        self.w.add('level1', range(2))
         self.w.add('level2', (1, 2, 3))
 
     def test_pop_with_name(self):
