@@ -83,6 +83,11 @@ class CheckpointTestCase(unittest.TestCase):
             self.assertFalse('level2' in c)
             self.assertTrue('level1' in c)
 
+    def test_pop_missing(self):
+        self.assertRaises(KeyError, self.w.pop, 'missing_key')
+        self.assertEqual(['level1', 'level2'],
+                         sorted(self.w.checkpoints.keys()))
+
 
 def suite():
     suite = unittest.TestSuite()

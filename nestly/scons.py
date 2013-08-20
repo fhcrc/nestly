@@ -58,17 +58,15 @@ class SConsWrap(object):
         However, any aggregate collections which have been worked on will still be
         accessible, and can be called operated on together after calling this method.
         If no name is passed, will revert to the last nest level."""
-        if name:
-            # If name is specified want to keep popping things off until we pop the name off
-            while True:
-                try:
-                    key, nest_state = self.checkpoints.popitem()
-                except KeyError:
-                    # If 
-                    raise KeyError("Don't have a checkpoint for level {0}".format(name))
-                if key == name:
-                    self.nest = nest_state
-                    return
+        if name is not None:
+            self.nest = self.checkpoints[name]
+            keys = list(self.checkpoints.keys())
+            name_idx = keys.index(name)
+            assert name_idx >= 0
+
+            # Pop every key from ``name`` on:
+            for k in reversed(keys[name_idx:]):
+                self.checkpoints.pop(k)
         else:
             self.nest = self.checkpoints.popitem()[1]
 
