@@ -46,18 +46,19 @@ class SConsWrap(object):
         return self.nest.iter(self.dest_dir)
 
     def add(self, name, nestable, **kw):
-        """Adds a level to the nesting and creates a checkpoint that can be reverted
-        to later for aggregation by calling `self.pop(name)`."""
+        """Adds a level to the nesting and creates a checkpoint that can be
+        reverted to later for aggregation by calling :meth:`SConsWrap.pop`."""
         if core._is_iter(nestable):
             self.checkpoints[name] = self.nest
             self.nest = copy.copy(self.nest)
         return self.nest.add(name, nestable, **kw)
 
     def pop(self, name=None):
-        """Reverts to the nest stage just before the corresponding call of `add_level`.
-        However, any aggregate collections which have been worked on will still be
-        accessible, and can be called operated on together after calling this method.
-        If no name is passed, will revert to the last nest level."""
+        """Reverts to the nest stage just before the corresponding call of
+        :meth:`SConsWrap.add_aggregate`.  However, any aggregate collections
+        which have been worked on will still be accessible, and can be called
+        operated on together after calling this method.  If no name is passed,
+        will revert to the last nest level."""
         if name is not None:
             self.nest = self.checkpoints[name]
             keys = list(self.checkpoints.keys())
@@ -71,7 +72,7 @@ class SConsWrap(object):
             self.nest = self.checkpoints.popitem()[1]
 
     def add_nest(self, name=None, **kw):
-        "A simple decorator which wraps nest.add."
+        "A simple decorator which wraps :meth:`Nest.add`."
         def deco(func):
             self.add(name or func.__name__, func, **kw)
             return func
@@ -115,7 +116,8 @@ class SConsWrap(object):
                 env = environment.Clone()
                 for k, v in control.items():
                     if k in env:
-                        logger.warn("Overwriting previously bound value %s=%s", k, env[k])
+                        logger.warn("Overwriting previously bound value %s=%s",
+                                    k, env[k])
                     env[k] = v
                 destdir = os.path.join(self.dest_dir, control['OUTDIR'])
                 env['OUTDIR'] = destdir
@@ -129,17 +131,18 @@ class SConsWrap(object):
 
         The second argument is a nullary factory function which will be called
         immediately for each of the current control dictionaries and stored in
-        each dictionary with the given name like in ``add_target``.
+        each dictionary with the given name like in
+        :meth:`SConsWrap.add_target`.
 
-        Since nests added after the aggregate can access the construct returned by the
-        factory function value, it can be mutated to provide additional values for
-        use when the decorated function is called.
+        Since nests added after the aggregate can access the construct returned
+        by the factory function value, it can be mutated to provide additional
+        values for use when the decorated function is called.
 
-        To do something with the aggregates, you must :meth:`SConsWrap.pop` nest levels created
-        between addition of the aggregate and then can add any normal targets you would
-        like which take advantage of the targets added to the data structure.
+        To do something with the aggregates, you must :meth:`SConsWrap.pop`
+        nest levels created between addition of the aggregate and then can add
+        any normal targets you would like which take advantage of the targets
+        added to the data structure.
         """
         @self.add_target(name)
         def wrap(outdir, c):
             return data_fac()
-
