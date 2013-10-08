@@ -81,15 +81,25 @@ The fundamental action of SCons integration is in adding a target to a nest.
 Adding a target is very much like adding a nest in that it will add a key to
 the control dictionary, except that it will not add any branching to a nest.
 For example, successive calls to :meth:`Nest.add() <nestly.core.Nest.add>`
-produces results like the following::
+produces results like the following
+
+.. testsetup:: n1,n2,n3,n4
+
+    import pprint
+    from nestly import Nest
+    from nestly.scons import SConsWrap
+    nest = Nest()
+    wrap = SConsWrap(nest)
+
+.. doctest:: n1
 
     >>> nest.add('nest1', ['A', 'B'])
     >>> nest.add('nest2', ['C', 'D'])
     >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('nest1', 'A'), ('nest2', 'C')],
-     [('nest1', 'A'), ('nest2', 'D')],
-     [('nest1', 'B'), ('nest2', 'C')],
-     [('nest1', 'B'), ('nest2', 'D')]]
+    [[('OUTDIR', 'A/C'), ('nest1', 'A'), ('nest2', 'C')],
+     [('OUTDIR', 'A/D'), ('nest1', 'A'), ('nest2', 'D')],
+     [('OUTDIR', 'B/C'), ('nest1', 'B'), ('nest2', 'C')],
+     [('OUTDIR', 'B/D'), ('nest1', 'B'), ('nest2', 'D')]]
 
 A crude illustration of how ``nest1`` and ``nest2`` relate::
 
@@ -102,7 +112,9 @@ A crude illustration of how ``nest1`` and ``nest2`` relate::
     #               D '---- - -
 
 Calling :meth:`~SConsWrap.add_target`, however, produces slightly different
-results::
+results:
+
+.. doctest:: n2
 
     >>> nest.add('nest1', ['A', 'B'])
     >>> @wrap.add_target()
@@ -110,8 +122,8 @@ results::
     ...     return 't-{0[nest1]}'.format(c)
     ...
     >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('nest1', 'A'), ('target1', 't-A')],
-     [('nest1', 'B'), ('target1', 't-B')]]
+    [[('OUTDIR', 'A'), ('nest1', 'A'), ('target1', 't-A')],
+     [('OUTDIR', 'B'), ('nest1', 'B'), ('target1', 't-B')]]
 
 And a similar illustration of how ``nest1`` and ``target1`` relate::
 
@@ -125,7 +137,9 @@ And a similar illustration of how ``nest1`` and ``target1`` relate::
 dictionaries from 2; it only updates each existing control dictionary to add
 the ``target1`` key. This is effectively the same as calling
 :meth:`~nestly.core.Nest.add` (or :meth:`~SConsWrap.add_nest`) with a function
-and returning an iterable of one item::
+and returning an iterable of one item:
+
+.. doctest:: n3
 
     >>> nest.add('nest1', ['A', 'B'])
     >>> @wrap.add_nest()
@@ -133,8 +147,8 @@ and returning an iterable of one item::
     ...     return ['t-{0[nest1]}'.format(c)]
     ...
     >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('nest1', 'A'), ('target1', 't-A')],
-     [('nest1', 'B'), ('target1', 't-B')]]
+    [[('OUTDIR', 'A/t-A'), ('nest1', 'A'), ('target1', 't-A')],
+     [('OUTDIR', 'B/t-B'), ('nest1', 'B'), ('target1', 't-B')]]
 
 Astute readers might have noticed the key difference between the two: functions
 decorated with :meth:`~SConsWrap.add_target` have an additional parameter,
@@ -156,23 +170,33 @@ Adding aggregates
 Aggregate collections are a special kind of target which enable you to operate
 on results from multiple nest items. This can be useful (for example) in running
 an algorithm with a bunch of different parameters, and comparing the results.
-Here is an example::
+Here is an example:
+
+.. doctest:: n4
 
     >>> nest.add('nest1', ['A', 'B'])
     >>> wrap.add_aggregate('aggregate1', list)
-    ...
-    >>> nest.add('nest2', ['C', 'D'])
-    >>> nest.add('nest3', ['E', 'F'])
+    >>> wrap.add('nest2', ['C', 'D'])
+    >>> wrap.add('nest3', ['E', 'F'])
     >>> @wrap.add_target()
     ... def some_target(outdir, c):
     ...     c['aggregate1'].append((c['nest2'], c['nest3']))
-    ...
-    >>> # Here we "pop" back out to the nest level where the aggregate was added
+    >>> # Now the aggregate has been filled
+    >>> pprint.pprint([c.items() for outdir, c in nest])
+    [[('OUTDIR', 'A'),
+      ('nest1', 'A'),
+      ('aggregate1', [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')])],
+     [('OUTDIR', 'B'),
+      ('nest1', 'B'),
+      ('aggregate1', [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')])]]
+    >>> # Here we "pop" back out to the nest level immediately after the
+    >>> # aggregate was added
     >>> wrap.pop('nest2')
+    >>> pprint.pprint([c.items() for outdir, c in nest])
+    []
     >>> @wrap.add_target()
-    >>> def operate_on_aggregate(outdir, c):
+    ... def operate_on_aggregate(outdir, c):
     ...     print 'agg', c['nest1'], c['aggregate1']
-    ...
     agg A [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')]
     agg B [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')]
 
@@ -188,6 +212,7 @@ aggregate was created using :meth:`~SConsWrap.pop`. Internally,
 only modifications retained are those to the aggregate collection. Once back
 at this ancestral nest state, the collection can be operated upon using
 :meth:`~SConsWrap.add_target`, just as would be done to create any other target.
+Note that to pop a level from the nest, one must call :meth:`nestly.scons.SConsWrap.add` rather than :meth:`nestly.core.Nest.add`.
 
 Because the results of operations on aggregates are just regular targets at
 some ancestral nest level, these targets can be used as the sources to targets
@@ -195,14 +220,9 @@ further downstream.
 
 .. note ::
 
-  Nestly's aggregation functionality used to involve registering aggregate
-  functions before creation of descendent nest levels. These functions were not
-  called until finalized using either `wrap.finalize` or `wrap.finalize_all`.
-  This interface had the disadvantage of not allowing the user to utilize
-  aggregate targets as sources of other targets downstream. However, the old
-  interface is not compatible with that described here, so those using this
-  aggregation functionality should ensure that they are using the correct
-  interface give the version of nestly installed.
+  nestly's initial SCons aggregation functionality added in `version 0.4.0 <https://github.com/fhcrc/nestly/tree/0.4.0>`_ and described in the `paper describing nestly <http://dx.doi.org/doi:10.1093/bioinformatics/bts696>`_ involved registering aggregate functions before adding additional levels to the nest.
+  This interface did not allow the user to utilize aggregate targets as sources of other targets downstream.
+  The original aggregation functionality has since been removed.
 
 Calling commands from SCons
 ===========================
