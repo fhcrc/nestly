@@ -16,10 +16,12 @@ The basic idea is that when writing an SConstruct file (analogous to a
 Makefile), these :class:`SConsWrap` objects extend the usual nestly
 functionality with build dependencies. Specifically, there are functions that
 add targets to the nest. When SCons is invoked, these targets are identified
-as dependencies and the needed code is run. There are also aggregate functions
-(this is aggregate with a hard second "a"; rhymes with "Watergate") that don't
-get immediately called, but rather when the :meth:`~SConsWrap.finalize_aggregate` method
-is called.
+as dependencies and the needed code is run.
+
+Typically, you will only need targets within some nest level to refer to things
+either in the same nest, or in parent nests. However, it is possible to operate
+on target collections which are not related in this way by using aggregate
+targets.
 
 Constructing an ``SConsWrap``
 =============================
@@ -151,44 +153,56 @@ other parameters are accepted.
 Adding aggregates
 =================
 
-Aggregate functions are a special case of targets. Instead of the decorated
-function being called immediately, it will be called at some other specified
-moment. An example::
+Aggregate collections are a special kind of target which enable you to operate
+on results from multiple nest items. This can be useful (for example) in running
+an algorithm with a bunch of different parameters, and comparing the results.
+Here is an example::
 
     >>> nest.add('nest1', ['A', 'B'])
-    >>> @wrap.add_aggregate(list)
-    ... def aggregate1(outdir, c, inputs):
-    ...     print 'agg', c['nest1'], inputs
+    >>> wrap.add_aggregate('aggregate1', list)
     ...
     >>> nest.add('nest2', ['C', 'D'])
     >>> nest.add('nest3', ['E', 'F'])
     >>> @wrap.add_target()
-    ... def add_target(outdir, c):
+    ... def some_target(outdir, c):
     ...     c['aggregate1'].append((c['nest2'], c['nest3']))
     ...
-    >>> wrap.finalize_aggregate('aggregate1')
+    >>> # Here we "pop" back out to the nest level where the aggregate was added
+    >>> wrap.pop('nest2')
+    >>> @wrap.add_target()
+    >>> def operate_on_aggregate(outdir, c):
+    ...     print 'agg', c['nest1'], c['aggregate1']
+    ...
     agg A [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')]
     agg B [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')]
 
-The first argument to :meth:`~SConsWrap.add_aggregate` is a factory function
-which will be called with no arguments and added to each control dictionary as
-the name of the aggregate. Targets added after the aggregate are able to access
-and modify the value added.
+The first argument to :meth:`~SConsWrap.add_aggregate` will be used as a key for
+accessing the aggregate collection from the control dictionary. The second
+argument should be a factory function which will be called with no arguments
+and set as the initial value of the aggregate collection. Targets added after
+the aggregate are able to access and modify this value.
 
-When the aggregate is finalized, it will be called with output directory and
-control dictionary like a target, but also with the value which was added to
-the control dictionary. This allows aggregates to use values from later
-targets.
+To use the aggregate, you must "pop" back out to the nest level at which the
+aggregate was created using :meth:`~SConsWrap.pop`. Internally,
+:meth:`~SConsWrap.pop` is reverting the nest to a previous state, where the
+only modifications retained are those to the aggregate collection. Once back
+at this ancestral nest state, the collection can be operated upon using
+:meth:`~SConsWrap.add_target`, just as would be done to create any other target.
 
-Aggregates can either be finalized by calling
-:meth:`~SConsWrap.finalize_aggregate` or
-:meth:`~SConsWrap.finalize_all_aggregates`. The former will finalize a
-particular aggregate by name, while the latter finalizes all aggregates in the
-same order they were added.
+Because the results of operations on aggregates are just regular targets at
+some ancestral nest level, these targets can be used as the sources to targets
+further downstream.
 
-The second parameter to :meth:`~SConsWrap.add_aggregate` is the same as the
-first parameter to :meth:`~SConsWrap.add_target`: the name of the aggregate,
-which will default to the name of the function if none is specified.
+.. note ::
+
+  Nestly's aggregation functionality used to involve registering aggregate
+  functions before creation of descendent nest levels. These functions were not
+  called until finalized using either `wrap.finalize` or `wrap.finalize_all`.
+  This interface had the disadvantage of not allowing the user to utilize
+  aggregate targets as sources of other targets downstream. However, the old
+  interface is not compatible with that described here, so those using this
+  aggregation functionality should ensure that they are using the correct
+  interface give the version of nestly installed.
 
 Calling commands from SCons
 ===========================
