@@ -167,62 +167,77 @@ other parameters are accepted.
 Adding aggregates
 =================
 
-Aggregate collections are a special kind of target which enable you to operate
-on results from multiple nest items. This can be useful (for example) in running
-an algorithm with a bunch of different parameters, and comparing the results.
-Here is an example:
+As mentioned in the introduction, often you only need targets within a given nest level to depend on things in the same nest level or parental nest levels.
+To get around this restriction, you can utilize nestly's aggregate functionality.
+
+Adding an aggregate target creates a collection (for each branch of the current nest state) which can be updated in downstream nest levels.
+Once targets have been added to the aggregate collection, you can return back to a previous nest level by using the :meth:`~SConsWrap.pop` function (the motivation for this is explained below).
+From there, you can operate on the aggregate collection to create new targets.
+
+For example, let's say we have two nest levels, `nest1` and `nest2`, wtih branches `[A, B]` and `[C, D]` respectively.
+Further imagine that we want to do some stuff in each of `C` and `D`, and then combine these results into two final targets, one for each of `A` and `B`.
+The code below shows how we do this:
 
 .. doctest:: n4
 
-    >>> nest.add('nest1', ['A', 'B'])
+    >>> # Create the first nest level, and add an aggregate named "aggregate1"
+    >>> wrap.add('nest1', ['A', 'B'])
     >>> wrap.add_aggregate('aggregate1', list)
+    ...
+    >>> # Next, add nest2 and a target to nest2
     >>> wrap.add('nest2', ['C', 'D'])
-    >>> wrap.add('nest3', ['E', 'F'])
     >>> @wrap.add_target()
     ... def some_target(outdir, c):
-    ...     c['aggregate1'].append((c['nest2'], c['nest3']))
-    >>> # Now the aggregate has been filled
-    >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('OUTDIR', 'A'),
-      ('nest1', 'A'),
-      ('aggregate1', [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')])],
-     [('OUTDIR', 'B'),
-      ('nest1', 'B'),
-      ('aggregate1', [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')])]]
-    >>> # Here we "pop" back out to the nest level immediately after the
-    >>> # aggregate was added
+    ...     target = c['nest1'] + c['nest2']
+    ...     # here we add to the aggregate
+    ...     c['aggregate1'].append(target)
+    ...     return target
+    ...
+    >>> # Now the aggregates have been filled!
+    >>> pprint.pprint([(c['nest1'], c['nest2'], c['aggregate1']) for outdir, c in wrap])
+    [('A', 'C', ['AC', 'AD']),
+     ('A', 'D', ['AC', 'AD']),
+     ('B', 'C', ['BC', 'BD']),
+     ('B', 'D', ['BC', 'BD'])]
+    >>>
+    >>> # However, if we try to build something from the aggregate collection now, we'd get 4 copies (one for
+    >>> # 'A/C', one for 'A/D', etc.); we only wanted two. To achieve the desired result, we return to the
+    >>> # nest1 level by "popping" the nest2 nest level off the stack of nest levels.
     >>> wrap.pop('nest2')
-    >>> pprint.pprint([c.items() for outdir, c in nest])
-    []
+    >>> # Now when we access the aggregate collection, there are only two entries, one for A and one for B:
+    >>> pprint.pprint([(c['nest1'], c['aggregate1']) for outdir, c in wrap])
+    [('A', ['AC', 'AD']), ('B', ['BC', 'BD'])]
+    >>>
+    >>> # Now we can operate on our aggregate collection from inside nest1!
     >>> @wrap.add_target()
     ... def operate_on_aggregate(outdir, c):
     ...     print 'agg', c['nest1'], c['aggregate1']
-    agg A [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')]
-    agg B [('C', 'E'), ('C', 'F'), ('D', 'E'), ('D', 'F')]
+    ...
+    agg A ['AC', 'AD']
+    agg B ['BC', 'BD']
 
-The first argument to :meth:`~SConsWrap.add_aggregate` will be used as a key for
-accessing the aggregate collection from the control dictionary. The second
-argument should be a factory function which will be called with no arguments
-and set as the initial value of the aggregate collection. Targets added after
-the aggregate are able to access and modify this value.
+As you can see above, aggregate targets are added using the :meth:`~SConsWrap.add_aggregate` method.
+The first argument to this method is used as a key for accessing the aggregate collection(s) from the control dictionary.
+The second argument should be a factory function which will be called with no arguments and set as the initial value of the aggregate collection (typically, either `list` or `dict`).
 
-To use the aggregate, you must "pop" back out to the nest level at which the
-aggregate was created using :meth:`~SConsWrap.pop`. Internally,
-:meth:`~SConsWrap.pop` is reverting the nest to a previous state, where the
-only modifications retained are those to the aggregate collection. Once back
-at this ancestral nest state, the collection can be operated upon using
-:meth:`~SConsWrap.add_target`, just as would be done to create any other target.
+In theory, one could operate on the aggregate collection without having to "return" to a previous nest state.
+However, as the example above illustrates, if one did this a separate target would be created for each nest item in the current nest level.
+In particular, the "operate_on_aggregate" target would be exactly the same for each of `A/C` and `A/D` (as well as `B/C` and `B/D`).
+Especially for expensive computations, this is not ideal.
+
+The :meth:`~SConsWrap.pop` method avoids this mess by taking us back to a previous nest state so that aggregates can be operated on without producing duplicate targets.
+This function, when passed the name of a nest level, returns the nest wrapper to the state just before that nest level was created.
+The only modifications which remain are those towards the aggregate collection, which retains any targets added to it within the removed/closed nest levels.
+Once back at the parental nest level, targets added to the collection can be operated on by any further targets added.
 Note that to pop a level from the nest, one must call :meth:`nestly.scons.SConsWrap.add` rather than :meth:`nestly.core.Nest.add`.
 
-Because the results of operations on aggregates are just regular targets at
-some ancestral nest level, these targets can be used as the sources to targets
-further downstream.
+Because the results of operations on aggregates are just regular targets at some ancestral nest level, these targets can be used as the sources to targets further downstream.
 
 .. note ::
 
   nestly's initial SCons aggregation functionality added in `version 0.4.0 <https://github.com/fhcrc/nestly/tree/0.4.0>`_ and described in the `paper describing nestly <http://dx.doi.org/doi:10.1093/bioinformatics/bts696>`_ involved registering aggregate functions before adding additional levels to the nest.
   This interface did not allow the user to utilize aggregate targets as sources of other targets downstream.
-  The original aggregation functionality has since been removed.
+  The original aggregation functionality has since been removed in favor of that described above.
 
 Calling commands from SCons
 ===========================
