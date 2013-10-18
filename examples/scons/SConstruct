@@ -1,17 +1,16 @@
 # -*- python -*-
 #
 # This example takes every file in the inputs directory and performs the
-# following operations. First, it cuts out a column range from every line in
-# the file, in this case either 1-5 or 3-40. After it does this it optionally
-# filters out every line that has an "o" or "O". Then it runs wc on every such
-# file. These word counts then get aggregated together by the prep_tab.sh
-# script.
+# following operations:
+# * cuts out a column range from every line in the file; either 1-5 or 3-40
+# * optionally filters out every line that has an "o" or "O"
+# * runs wc on every such file
+# * aggregate these together using the prep_tab.sh script
 #
 # Assuming that SCons is installed, you should be able to run this example by
-# simply typing `scons` in this directory. That should build a series of things
-# in the `build` directory. Because this is a build system, deleting a file or
-# directory in the build directory and then running scons will simply rerun the
-# needed parts.
+# typing `scons` in this directory. That should build a series of things in the
+# `build` directory. Because this is a build system, deleting a file or directory
+# in the build directory and then running scons will simply rerun the needed parts.
 
 from os.path import join
 import os
@@ -19,54 +18,43 @@ import os
 from nestly.scons import SConsWrap
 from nestly import Nest
 
-nest = Nest()
-w = SConsWrap(nest, 'build')
+nest = SConsWrap(Nest(), 'build')
 
 
-# Initialize an aggregator that runs prep_tab.sh on all of its arguments. The
-# `list` argument specifies that this aggregator will be a list of functions.
-# This aggregator is then populated below with `append`.
-@w.add_aggregate(list)
-def all_counts(outdir, c, inputs):
-    return Command(join(outdir, 'all_counts.tab'),
-                   inputs,
-                   './prep_tab.sh $SOURCES | column -t >$TARGET')
+# Add our aggregate targets, initializing collections that will get populated
+# downstream. At the end of the pipeline, we will operate on these collections.
+# The `add_argument` takes a key which will be the key used for accessing the
+# collection. The `list` argument specifies that the collection will be a list.
+nest.add_aggregate('count_agg', list)
+nest.add_aggregate('cut_agg', list)
 
-# Initialize an aggregator that concatenates all of the cut files into one.
-@w.add_aggregate(list)
-def all_cut(outdir, c, inputs):
-    return Command(join(outdir, 'all_cut.txt'),
-                   inputs,
-                   'cat $SOURCES >$TARGET')
-
-# Add a nest with the name 'input_file' that the files in the inputs directory
-# as its nestable list. Make its label function just the basename.
-w.add('input_file', [join('inputs', f) for f in os.listdir('inputs')],
+# Add a nest level with the name 'input_file' that takes the files in the inputs
+# directory as its nestable list. Make its label function just the basename.
+nest.add('input_file', [join('inputs', f) for f in os.listdir('inputs')],
       label_func=os.path.basename)
 
-# This determines the column range we will cut out of the file.
-w.add('cut_range', ['1-5', '3-40'])
+# This nest level determines the column range we will cut out of the file.
+nest.add('cut_range', ['1-5', '3-40'])
 
-# This adds a nest with the name 'cut', but also makes an SCons target out of
+# This adds a nest item with the name 'cut' and makes an SCons target out of
 # the result.
-@w.add_target()
+@nest.add_target()
 def cut(outdir, c):
     cut, = Command(join(outdir, 'cut'),
                    c['input_file'],
                    'cut -c {0[cut_range]} <$SOURCE >$TARGET'.format(c))
-    # Here we add this cut file to the all_cut aggregator.
-    c['all_cut'].append(cut)
+    # Here we add this cut file to the all_cut aggregator before returning
+    c['cut_agg'].append(cut)
     return cut
 
-# This determines if we remove the lines with o's.
-w.add('o_choice', ['remove_o', 'leave_o'])
+# This nest level determines whether we remove the lines with o's.
+nest.add('o_choice', ['remove_o', 'leave_o'])
 
-@w.add_target()
+@nest.add_target()
 def o_choice(outdir, c):
     # If we leave the o lines, then we don't have to do anything.
     if c['o_choice'] == 'leave_o':
         return c['cut']
-
     # If we want to remove the o lines, then we have to make an SCons Command
     # that does so with sed.
     return Command(join(outdir, 'o_removed'),
@@ -74,14 +62,33 @@ def o_choice(outdir, c):
                    'sed "/[oO]/d" <$SOURCE >$TARGET')[0]
 
 # Add a target for the word counts.
-@w.add_target()
+@nest.add_target()
 def counts(outdir, c):
     counts, = Command(join(outdir, 'counts'),
                       c['o_choice'],
                       'wc <$SOURCE >$TARGET')
-    c['all_counts'].append(counts)
+    # Add the resulting file to the count_agg collection
+    c['count_agg'].append(counts)
     return counts
 
-# When we finalize all of the aggregates, all of the aggregate functions are
-# called, creating the corresponding dependencies.
-w.finalize_all_aggregates()
+# Before operating on our aggregate collections, we return back to the original
+# nest level in which the aggregates were created by using the `pop` function to
+# remove all of the later nest levels from the nest state, leaving only the
+# collections.
+nest.pop('input_file')
+
+# Now, back at the initial nest level, we can operate on the populated aggregate
+# collections. First, the counts:
+@nest.add_target()
+def all_counts(outdir, c, inputs):
+    return Command(join(outdir, 'all_counts.tab'),
+                   inputs,
+                   './prep_tab.sh $SOURCES | column -t >$TARGET')
+
+# Then the cuts:
+@nest.add_target()
+def all_cut(outdir, c, inputs):
+    return Command(join(outdir, 'all_cut.txt'),
+                   inputs,
+                   'cat $SOURCES >$TARGET')
+
