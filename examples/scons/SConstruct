@@ -80,15 +80,15 @@ nest.pop('input_file')
 # Now, back at the initial nest level, we can operate on the populated aggregate
 # collections. First, the counts:
 @nest.add_target()
-def all_counts(outdir, c, inputs):
+def all_counts(outdir, c):
     return Command(join(outdir, 'all_counts.tab'),
-                   inputs,
+                   c['count_agg'],
                    './prep_tab.sh $SOURCES | column -t >$TARGET')
 
 # Then the cuts:
 @nest.add_target()
-def all_cut(outdir, c, inputs):
+def all_cut(outdir, c):
     return Command(join(outdir, 'all_cut.txt'),
-                   inputs,
+                   c['cut_agg'],
                    'cat $SOURCES >$TARGET')
 
