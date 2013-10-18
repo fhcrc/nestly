@@ -32,26 +32,24 @@ needs to have been created with ``include_outdir=True``, which is the default.
 Optionally, a destination directory can be given to the ``SConsWrap`` which
 will be passed to :meth:`Nest.iter() <nestly.core.Nest.iter>`::
 
-    >>> nest = Nest()
-    >>> wrap = SConsWrap(nest, dest_dir='build')
+    >>> nest = SConsWrap(Nest(), dest_dir='build')
 
-In this example, all the nests created by ``wrap`` will go under the ``build``
+In this example, all the nests created by ``nest`` will go under the ``build``
 directory. Throughout the rest of this document, ``nest`` will refer to this
-same :class:`~nestly.core.Nest` instance and ``wrap`` will refer to this same
-:class:`SConsWrap` instance.
+same :class:`SConsWrap` instance.
 
-Adding nests
-============
+Adding levels
+=============
 
-Nests can still be added to the ``nest`` object::
+Levels can still be added to the ``nest`` object::
 
     >>> nest.add('nest1', ['spam', 'eggs'])
 
 :class:`SConsWrap` also provides a convenience decorator
-:meth:`SConsWrap.add_nest` for adding nests which use a function as their
+:meth:`SConsWrap.add_nest` for adding levels which use a function as their
 nestable. The following examples are exactly equivalent::
 
-    @wrap.add_nest('nest2', label_func=str.strip)
+    @nest.add_nest('nest2', label_func=str.strip)
     def nest2(c):
         return ['  __' + c['nest1'], c['nest1'] + '__  ']
 
@@ -63,7 +61,7 @@ Another advantage to using the decorator is that the name parameter is
 optional; if it's omitted, the name of the nest is taken from the name of the
 function. As a result, the following example is also equivalent::
 
-    @wrap.add_nest(label_func=str.strip)
+    @nest.add_nest(label_func=str.strip)
     def nest2(c):
         return ['  __' + c['nest1'], c['nest1'] + '__  ']
 
@@ -71,14 +69,14 @@ function. As a result, the following example is also equivalent::
 .. note ::
 
   :meth:`~SConsWrap.add_nest` must always be called before being applied as a
-  decorator. ``@wrap.add_nest`` is not valid; the correct usage is
-  ``@wrap.add_nest()`` if no other parameters are specified.
+  decorator. ``@nest.add_nest`` is not valid; the correct usage is
+  ``@nest.add_nest()`` if no other parameters are specified.
 
 Adding targets
 ==============
 
 The fundamental action of SCons integration is in adding a target to a nest.
-Adding a target is very much like adding a nest in that it will add a key to
+Adding a target is very much like adding a level in that it will add a key to
 the control dictionary, except that it will not add any branching to a nest.
 For example, successive calls to :meth:`Nest.add() <nestly.core.Nest.add>`
 produces results like the following
@@ -88,8 +86,7 @@ produces results like the following
     import pprint
     from nestly import Nest
     from nestly.scons import SConsWrap
-    nest = Nest()
-    wrap = SConsWrap(nest)
+    nest = SConsWrap(Nest())
 
 .. doctest:: n1
 
@@ -117,7 +114,7 @@ results:
 .. doctest:: n2
 
     >>> nest.add('nest1', ['A', 'B'])
-    >>> @wrap.add_target()
+    >>> @nest.add_target()
     ... def target1(outdir, c):
     ...     return 't-{0[nest1]}'.format(c)
     ...
@@ -142,7 +139,7 @@ and returning an iterable of one item:
 .. doctest:: n3
 
     >>> nest.add('nest1', ['A', 'B'])
-    >>> @wrap.add_nest()
+    >>> @nest.add_nest()
     ... def target1(c):
     ...     return ['t-{0[nest1]}'.format(c)]
     ...
@@ -170,46 +167,46 @@ Adding aggregates
 As mentioned in the introduction, often you only need targets within a given nest level to depend on things in the same nest level or parental nest levels.
 To get around this restriction, you can utilize nestly's aggregate functionality.
 
-Adding an aggregate target creates a collection (for each branch of the current nest state) which can be updated in downstream nest levels.
-Once targets have been added to the aggregate collection, you can return back to a previous nest level by using the :meth:`~SConsWrap.pop` function (the motivation for this is explained below).
-From there, you can operate on the aggregate collection to create new targets.
+Adding an aggregate target creates a collection (for each terminal node of the current nest state) which can be updated in downstream nest levels.
+Once targets have been added to the aggregate collection, you can return to a previous nest level by using the :meth:`~SConsWrap.pop` function and operate on the populated aggregate collection at tha label.
 
-For example, let's say we have two nest levels, `nest1` and `nest2`, wtih branches `[A, B]` and `[C, D]` respectively.
-Further imagine that we want to do some stuff in each of `C` and `D`, and then combine these results into two final targets, one for each of `A` and `B`.
-The code below shows how we do this:
+For example, let's say we have two nest levels, ``nest1`` and ``nest2``, which can take the values ``[A, B]`` and ``[C, D]`` respectively.
+If we want to perform an operation for every unique combination of ``{nest1, nest2}``, then aggregate the results grouped by values of ``nest1``:
 
 .. doctest:: n4
 
     >>> # Create the first nest level, and add an aggregate named "aggregate1"
-    >>> wrap.add('nest1', ['A', 'B'])
-    >>> wrap.add_aggregate('aggregate1', list)
+    >>> nest.add('nest1', ['A', 'B'])
+    >>> nest.add_aggregate('aggregate1', list)
     ...
     >>> # Next, add nest2 and a target to nest2
-    >>> wrap.add('nest2', ['C', 'D'])
-    >>> @wrap.add_target()
+    >>> nest.add('nest2', ['C', 'D'])
+    >>> @nest.add_target()
     ... def some_target(outdir, c):
     ...     target = c['nest1'] + c['nest2']
-    ...     # here we add to the aggregate
+    ...     # here we populate the aggregate
     ...     c['aggregate1'].append(target)
     ...     return target
     ...
     >>> # Now the aggregates have been filled!
-    >>> pprint.pprint([(c['nest1'], c['nest2'], c['aggregate1']) for outdir, c in wrap])
+    >>> # Note that the aggregate collection is shared among all descendents of
+    >>> # each `nest1` value
+    >>> pprint.pprint([(c['nest1'], c['nest2'], c['aggregate1']) for outdir, c in nest])
     [('A', 'C', ['AC', 'AD']),
      ('A', 'D', ['AC', 'AD']),
      ('B', 'C', ['BC', 'BD']),
      ('B', 'D', ['BC', 'BD'])]
     >>>
     >>> # However, if we try to build something from the aggregate collection now, we'd get 4 copies (one for
-    >>> # 'A/C', one for 'A/D', etc.); we only wanted two. To achieve the desired result, we return to the
-    >>> # nest1 level by "popping" the nest2 nest level off the stack of nest levels.
-    >>> wrap.pop('nest2')
+    >>> # 'A/C', one for 'A/D', etc.).
+    >>> # To return to the nest state prior to adding `nest2`, we pop it from the nest:
+    >>> nest.pop('nest2')
     >>> # Now when we access the aggregate collection, there are only two entries, one for A and one for B:
-    >>> pprint.pprint([(c['nest1'], c['aggregate1']) for outdir, c in wrap])
+    >>> pprint.pprint([(c['nest1'], c['aggregate1']) for outdir, c in nest])
     [('A', ['AC', 'AD']), ('B', ['BC', 'BD'])]
     >>>
-    >>> # Now we can operate on our aggregate collection from inside nest1!
-    >>> @wrap.add_target()
+    >>> # we can add targets using the aggregate collection!
+    >>> @nest.add_target()
     ... def operate_on_aggregate(outdir, c):
     ...     print 'agg', c['nest1'], c['aggregate1']
     ...
@@ -218,17 +215,12 @@ The code below shows how we do this:
 
 As you can see above, aggregate targets are added using the :meth:`~SConsWrap.add_aggregate` method.
 The first argument to this method is used as a key for accessing the aggregate collection(s) from the control dictionary.
-The second argument should be a factory function which will be called with no arguments and set as the initial value of the aggregate collection (typically, either `list` or `dict`).
+The second argument should be a factory function which will be called with no arguments and set as the initial value of the aggregate (typically a collection constructor like `list` or `dict`).
 
-In theory, one could operate on the aggregate collection without having to "return" to a previous nest state.
-However, as the example above illustrates, if one did this a separate target would be created for each nest item in the current nest level.
-In particular, the "operate_on_aggregate" target would be exactly the same for each of `A/C` and `A/D` (as well as `B/C` and `B/D`).
-Especially for expensive computations, this is not ideal.
-
-The :meth:`~SConsWrap.pop` method avoids this mess by taking us back to a previous nest state so that aggregates can be operated on without producing duplicate targets.
-This function, when passed the name of a nest level, returns the nest wrapper to the state just before that nest level was created.
-The only modifications which remain are those towards the aggregate collection, which retains any targets added to it within the removed/closed nest levels.
-Once back at the parental nest level, targets added to the collection can be operated on by any further targets added.
+Prior to using the aggregate collection, any branching nest levels added after the aggregate should be removed, using :meth:`~SConsWrap.pop` to prevent building identical targets.
+This function, when passed the name of a nest level, returns the :class:`SConsWrap` to the state just before that nest level was created.
+The only modifications which remain are those on the aggregate collection, which retains any targets added to it within the removed nest levels.
+Once back at the parental nest level, targets added to the aggregate can be operated on by any further targets added.
 Note that to pop a level from the nest, one must call :meth:`nestly.scons.SConsWrap.add` rather than :meth:`nestly.core.Nest.add`.
 
 Because the results of operations on aggregates are just regular targets at some ancestral nest level, these targets can be used as the sources to targets further downstream.
@@ -261,7 +253,7 @@ using SCons. The easiest way is to define the various targets from within the
     # Each input will get transformed each of these different ways.
     nest.add('transformation', ['log', 'unit', 'asinh'])
 
-    @wrap.add_target()
+    @nest.add_target()
     def transformed(outdir, c):
         # The template for the command to run.
         action = 'guppy mft --transform {0[transformation]} $SOURCE -o $TARGET'
@@ -275,7 +267,7 @@ using SCons. The easiest way is to define the various targets from within the
 A function :func:`name_targets` is also provided for more easily naming the
 targets of an SCons command::
 
-    @wrap.add_target('target1')
+    @nest.add_target('target1')
     @name_targets
     def target1(outdir, c):
         return 'outfile1', 'outfile2', Command(

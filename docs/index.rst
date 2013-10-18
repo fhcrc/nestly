@@ -6,10 +6,10 @@
 Welcome to nestly's documentation!
 ==================================
 
-Nestly is a small package designed to ease running software with combinatorial
-choices of parameters. It can easily do so for "cartesian products" of
-parameter choices, but can do much more-- arbitrary "backwards-looking"
-dependencies can be used.
+``nestly`` is a small package designed to ease running software with
+combinatorial choices of parameters. It can easily do so for "cartesian
+products" of parameter choices, but can do much more-- arbitrary
+"backwards-looking" dependencies can be used.
 
 To find out more, check out the the :ref:`examples`.
 
