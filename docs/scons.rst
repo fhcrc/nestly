@@ -41,29 +41,29 @@ same :class:`SConsWrap` instance.
 Adding levels
 =============
 
-Levels can still be added to the ``nest`` object::
+Nest levels can still be added to the ``nest`` object::
 
-    >>> nest.add('nest1', ['spam', 'eggs'])
+    >>> nest.add('level1', ['spam', 'eggs'])
 
 :class:`SConsWrap` also provides a convenience decorator
 :meth:`SConsWrap.add_nest` for adding levels which use a function as their
 nestable. The following examples are exactly equivalent::
 
-    @nest.add_nest('nest2', label_func=str.strip)
-    def nest2(c):
-        return ['  __' + c['nest1'], c['nest1'] + '__  ']
+    @nest.add_nest('level2', label_func=str.strip)
+    def level2(c):
+        return ['  __' + c['level1'], c['level1'] + '__  ']
 
-    def nest2(c):
-        return ['  __' + c['nest1'], c['nest1'] + '__  ']
-    nest.add('nest2', nest2, label_func=str.strip)
+    def level2(c):
+        return ['  __' + c['level1'], c['level1'] + '__  ']
+    nest.add('level2', level2, label_func=str.strip)
 
 Another advantage to using the decorator is that the name parameter is
 optional; if it's omitted, the name of the nest is taken from the name of the
 function. As a result, the following example is also equivalent::
 
     @nest.add_nest(label_func=str.strip)
-    def nest2(c):
-        return ['  __' + c['nest1'], c['nest1'] + '__  ']
+    def level2(c):
+        return ['  __' + c['level1'], c['level1'] + '__  ']
 
 
 .. note ::
@@ -90,22 +90,22 @@ produces results like the following
 
 .. doctest:: n1
 
-    >>> nest.add('nest1', ['A', 'B'])
-    >>> nest.add('nest2', ['C', 'D'])
+    >>> nest.add('level1', ['A', 'B'])
+    >>> nest.add('level2', ['C', 'D'])
     >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('OUTDIR', 'A/C'), ('nest1', 'A'), ('nest2', 'C')],
-     [('OUTDIR', 'A/D'), ('nest1', 'A'), ('nest2', 'D')],
-     [('OUTDIR', 'B/C'), ('nest1', 'B'), ('nest2', 'C')],
-     [('OUTDIR', 'B/D'), ('nest1', 'B'), ('nest2', 'D')]]
+    [[('OUTDIR', 'A/C'), ('level1', 'A'), ('level2', 'C')],
+     [('OUTDIR', 'A/D'), ('level1', 'A'), ('level2', 'D')],
+     [('OUTDIR', 'B/C'), ('level1', 'B'), ('level2', 'C')],
+     [('OUTDIR', 'B/D'), ('level1', 'B'), ('level2', 'D')]]
 
-A crude illustration of how ``nest1`` and ``nest2`` relate::
+A crude illustration of how ``level1`` and ``level2`` relate::
 
     #               C .---- - -
-    #    A .----------o nest2
+    #    A .----------o level2
     #      |        D '---- - -
-    # o----o nest1
+    # o----o level1
     #      |        C .---- - -
-    #    B '----------o nest2
+    #    B '----------o level2
     #               D '---- - -
 
 Calling :meth:`~SConsWrap.add_target`, however, produces slightly different
@@ -113,20 +113,20 @@ results:
 
 .. doctest:: n2
 
-    >>> nest.add('nest1', ['A', 'B'])
+    >>> nest.add('level1', ['A', 'B'])
     >>> @nest.add_target()
     ... def target1(outdir, c):
-    ...     return 't-{0[nest1]}'.format(c)
+    ...     return 't-{0[level1]}'.format(c)
     ...
     >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('OUTDIR', 'A'), ('nest1', 'A'), ('target1', 't-A')],
-     [('OUTDIR', 'B'), ('nest1', 'B'), ('target1', 't-B')]]
+    [[('OUTDIR', 'A'), ('level1', 'A'), ('target1', 't-A')],
+     [('OUTDIR', 'B'), ('level1', 'B'), ('target1', 't-B')]]
 
-And a similar illustration of how ``nest1`` and ``target1`` relate::
+And a similar illustration of how ``level1`` and ``target1`` relate::
 
     #                t-A
     #    A .----------o------ - -
-    # o----o nest1      target1
+    # o----o level1      target1
     #    B '----------o------ - -
     #                t-B
 
@@ -138,14 +138,14 @@ and returning an iterable of one item:
 
 .. doctest:: n3
 
-    >>> nest.add('nest1', ['A', 'B'])
+    >>> nest.add('level1', ['A', 'B'])
     >>> @nest.add_nest()
     ... def target1(c):
-    ...     return ['t-{0[nest1]}'.format(c)]
+    ...     return ['t-{0[level1]}'.format(c)]
     ...
     >>> pprint.pprint([c.items() for outdir, c in nest])
-    [[('OUTDIR', 'A/t-A'), ('nest1', 'A'), ('target1', 't-A')],
-     [('OUTDIR', 'B/t-B'), ('nest1', 'B'), ('target1', 't-B')]]
+    [[('OUTDIR', 'A/t-A'), ('level1', 'A'), ('target1', 't-A')],
+     [('OUTDIR', 'B/t-B'), ('level1', 'B'), ('target1', 't-B')]]
 
 Astute readers might have noticed the key difference between the two: functions
 decorated with :meth:`~SConsWrap.add_target` have an additional parameter,
@@ -168,30 +168,30 @@ As mentioned in the introduction, often you only need targets within a given nes
 To get around this restriction, you can utilize nestly's aggregate functionality.
 
 Adding an aggregate target creates a collection (for each terminal node of the current nest state) which can be updated in downstream nest levels.
-Once targets have been added to the aggregate collection, you can return to a previous nest level by using the :meth:`~SConsWrap.pop` function and operate on the populated aggregate collection at tha label.
+Once targets have been added to the aggregate collection, you can return to a previous nest level by using the :meth:`~SConsWrap.pop` method and operate on the populated aggregate collection at that level.
 
-For example, let's say we have two nest levels, ``nest1`` and ``nest2``, which can take the values ``[A, B]`` and ``[C, D]`` respectively.
-If we want to perform an operation for every unique combination of ``{nest1, nest2}``, then aggregate the results grouped by values of ``nest1``:
+For example, let's say we have two nest levels, ``level1`` and ``level2``, which take the values ``[A, B]`` and ``[C, D]`` respectively.
+If we want to perform an operation for every unique combination of ``{level1, level2}``, then aggregate the results grouped by values of ``level1``:
 
 .. doctest:: n4
 
     >>> # Create the first nest level, and add an aggregate named "aggregate1"
-    >>> nest.add('nest1', ['A', 'B'])
+    >>> nest.add('level1', ['A', 'B'])
     >>> nest.add_aggregate('aggregate1', list)
     ...
-    >>> # Next, add nest2 and a target to nest2
-    >>> nest.add('nest2', ['C', 'D'])
+    >>> # Next, add level2 and a target to level2
+    >>> nest.add('level2', ['C', 'D'])
     >>> @nest.add_target()
     ... def some_target(outdir, c):
-    ...     target = c['nest1'] + c['nest2']
+    ...     target = c['level1'] + c['level2']
     ...     # here we populate the aggregate
     ...     c['aggregate1'].append(target)
     ...     return target
     ...
     >>> # Now the aggregates have been filled!
     >>> # Note that the aggregate collection is shared among all descendents of
-    >>> # each `nest1` value
-    >>> pprint.pprint([(c['nest1'], c['nest2'], c['aggregate1']) for outdir, c in nest])
+    >>> # each `level1` value
+    >>> pprint.pprint([(c['level1'], c['level2'], c['aggregate1']) for outdir, c in nest])
     [('A', 'C', ['AC', 'AD']),
      ('A', 'D', ['AC', 'AD']),
      ('B', 'C', ['BC', 'BD']),
@@ -199,16 +199,16 @@ If we want to perform an operation for every unique combination of ``{nest1, nes
     >>>
     >>> # However, if we try to build something from the aggregate collection now, we'd get 4 copies (one for
     >>> # 'A/C', one for 'A/D', etc.).
-    >>> # To return to the nest state prior to adding `nest2`, we pop it from the nest:
-    >>> nest.pop('nest2')
+    >>> # To return to the nest state prior to adding `level2`, we pop it from the nest:
+    >>> nest.pop('level2')
     >>> # Now when we access the aggregate collection, there are only two entries, one for A and one for B:
-    >>> pprint.pprint([(c['nest1'], c['aggregate1']) for outdir, c in nest])
+    >>> pprint.pprint([(c['level1'], c['aggregate1']) for outdir, c in nest])
     [('A', ['AC', 'AD']), ('B', ['BC', 'BD'])]
     >>>
     >>> # we can add targets using the aggregate collection!
     >>> @nest.add_target()
     ... def operate_on_aggregate(outdir, c):
-    ...     print 'agg', c['nest1'], c['aggregate1']
+    ...     print 'agg', c['level1'], c['aggregate1']
     ...
     agg A ['AC', 'AD']
     agg B ['BC', 'BD']
