@@ -32,8 +32,65 @@ class AddTargetWithEnvTestCase(unittest.TestCase):
                  mock.call({'item': 2, 'OUTDIR': './2'}, './2', {'item': 2, 'OUTDIR': '2'})]
         self.func_mock.assert_has_calls(calls)
 
+class CheckpointTestCase(unittest.TestCase):
+    def setUp(self):
+        self.nest = Nest()
+        self.nest.add('list', [[]], create_dir=False)
+        self.w = scons.SConsWrap(self.nest)
+        self.w.add('level1', range(2))
+        self.w.add('level2', (1, 2, 3))
+
+    def test_pop_with_name(self):
+        w = self.w
+
+        @w.add_target()
+        def key_file(outdir, c):
+            c['list'].append(c['level2'])
+            return True
+
+        @w.add_target()
+        def assertion_during(outdir, c):
+            self.assertTrue(c['key_file'])
+            self.assertTrue('level2' in c)
+            return True
+
+        n2 = w.nest
+        w.pop('level1')
+        n1 = w.nest
+
+        # Want to make sure nested level checkpoints are popped off as well
+        self.assertEqual(len(w.checkpoints), 0)
+        # Make sure we have the right nest now
+        self.assertTrue(self.nest is n1)
+        self.assertFalse(self.nest is n2)
+
+        @w.add_target()
+        def assertion_after(outdir, c):
+            self.assertFalse('key_file' in c)
+            self.assertEqual(6, len(c['list']))
+            self.assertFalse('level2' in c)
+
+    def test_pop_last(self):
+        w = self.w
+        w.pop()
+
+        # This time, there should be one checkpoint left
+        self.assertEqual(len(w.checkpoints), 1)
+        self.assertTrue('level1' in w.checkpoints)
+
+        @w.add_target()
+        def assertion_after(outdir, c):
+            self.assertFalse('level2' in c)
+            self.assertTrue('level1' in c)
+
+    def test_pop_missing(self):
+        self.assertRaises(KeyError, self.w.pop, 'missing_key')
+        self.assertEqual(['level1', 'level2'],
+                         sorted(self.w.checkpoints.keys()))
+
+
 def suite():
     suite = unittest.TestSuite()
-    for cls in [AddTargetWithEnvTestCase]:
+    for cls in [AddTargetWithEnvTestCase, CheckpointTestCase]:
         suite.addTest(unittest.makeSuite(cls))
     return suite
