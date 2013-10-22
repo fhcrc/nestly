@@ -2,6 +2,8 @@
 ======================
 
 * Add ``SConsWrap.add_target_with_env`` (GH-14)
+* Completely revamped aggregation functionality (GH-15)
+* Add ``SConsWrap.add_controls`` (GH-16)
 
 0.4.0
 =====
