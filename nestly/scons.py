@@ -28,6 +28,11 @@ class SConsEncoder(json.JSONEncoder):
             return str(obj)
         return super(SConsEncoder, self).default(obj)
 
+def _create_control_file(source, target, env):
+    target = str(target[0])
+    with open(target, 'w') as fp:
+        json.dump(env['control_dict'], fp, indent=2, cls=env['encoder_cls'])
+
 def name_targets(func):
     """
     Wrap a function such that returning ``'a', 'b', 'c', [1, 2, 3]`` transforms
@@ -181,11 +186,9 @@ class SConsWrap(object):
 
         @self.add_target(name=target_name)
         def control(outdir, c):
-            def create_control_file(source, target, env):
-                target = str(target[0])
-                with open(target, 'w') as fp:
-                    json.dump(c, fp, indent=2, cls=encoder_cls)
             return env.Command(os.path.join(outdir, file_name),
-                    [],
-                    create_control_file)[0]
+                               [],
+                               action=_create_control_file,
+                               control_dict=c,
+                               encoder_cls=encoder_cls)
 

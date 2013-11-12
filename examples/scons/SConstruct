@@ -71,6 +71,9 @@ def counts(outdir, c):
     c['count_agg'].append(counts)
     return counts
 
+# Add a control dictionary with chosen values to each leaf directory
+nest.add_controls(Environment())
+
 # Before operating on our aggregate collections, we return back to the original
 # nest level in which the aggregates were created by using the `pop` function to
 # remove all of the later nest levels from the nest state, leaving only the
