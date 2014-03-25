@@ -1,12 +1,15 @@
+Changes
+=======
+
 0.5.0 (in development)
-======================
+----------------------
 
 * Add ``SConsWrap.add_target_with_env`` (GH-14)
 * Completely revamped aggregation functionality (GH-15)
 * Add ``SConsWrap.add_controls`` (GH-16)
 
 0.4.0
-=====
+-----
 * Add SIG{INT,TERM,USR1} handling to nestrun (GH-9)
 * Add SCons integration via nestly.scons (GH-12)
 * Support for walking a directory in nestagg (GH-13)
@@ -15,13 +18,13 @@
 * Additional examples
 
 0.3.0
-=====
+-----
 * Add nestly.core.stripext
 * New aggregation functionality: nestagg subcommand; nestly.core.nest_map
 * Show tail of log file when nestrun fails (GH-10)
 
 0.2.0
-=====
+-----
 
 * Deprecated nestly.nestly
 * New object-oriented API in nestly.core

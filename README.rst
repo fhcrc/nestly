@@ -8,7 +8,7 @@ It can easily do so for "cartesian products" of parameter choices, but can do mu
 The vision here is that we take a fixed set of parameters and generate a single type of output for each defined combination, which can then be combined in some way for comparison and retrieval.
 We would like to set things up tidily with nested directories for output reflecting nested parameter choices.
 
-The `full documentation`_ is available on Github pages.
+The `full documentation`_ is available on ReadTheDocs.
 
 Installing
 ==========
@@ -30,7 +30,7 @@ Run::
 
     python setup.py test
 
-The `mock`_ library is required, and will be downloaded if missing.
+The `mock`_ library is required, but will be downloaded if missing.
 
 Introductory example
 ====================
@@ -132,7 +132,7 @@ License
 ``nestly`` source code is freely available under the `MIT License`_.
 
 .. _`Python Formatter documentation`: http://docs.python.org/library/string.html#formatstrings
-.. _`full documentation`: http://fhcrc.github.com/nestly/
+.. _`full documentation`: http://nestly.readthedocs.org/
 .. _`pip`: http://www.pip-installer.org
 .. _Scons: http://scons.org/
 .. _`MIT License`: http://www.opensource.org/licenses/mit-license.html

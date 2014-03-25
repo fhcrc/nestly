@@ -26,6 +26,8 @@ Contents:
 
    modules
 
+   changelog
+
 Indices and tables
 ==================
 
