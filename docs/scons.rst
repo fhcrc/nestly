@@ -227,7 +227,7 @@ Because the results of operations on aggregates are just regular targets at some
 
 .. note ::
 
-  nestly's initial SCons aggregation functionality added in `version 0.4.0 <https://github.com/fhcrc/nestly/tree/0.4.0>`_ and described in the `paper describing nestly <http://dx.doi.org/doi:10.1093/bioinformatics/bts696>`_ involved registering aggregate functions before adding additional levels to the nest.
+  nestly's initial SCons aggregation functionality added in `version 0.4.0 <https://github.com/fhcrc/nestly/tree/0.4.0>`_ and described in the `nestly manuscript <http://dx.doi.org/doi:10.1093/bioinformatics/bts696>`_ involved registering aggregate functions before adding additional levels to the nest.
   This interface did not allow the user to utilize aggregate targets as sources of other targets downstream.
   The original aggregation functionality has since been removed in favor of that described above.
 

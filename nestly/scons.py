@@ -71,19 +71,29 @@ class SConsWrap(object):
         return self.nest.iter(self.dest_dir)
 
     def add(self, name, nestable, **kw):
-        """Adds a level to the nesting and creates a checkpoint that can be
-        reverted to later for aggregation by calling :meth:`SConsWrap.pop`."""
+        """
+        Adds a level to the nesting and creates a checkpoint that can be
+        reverted to later for aggregation by calling :meth:`SConsWrap.pop`.
+
+        :param name: Identifier for the nest level
+        :param nestable: A nestable object - see :meth:`nestly.core.Nest.add`.
+        :param kw: Additional parameters to pass to :meth:`nestly.core.Nest.add`.
+        """
         if core._is_iter(nestable):
             self.checkpoints[name] = self.nest
             self.nest = copy.copy(self.nest)
         return self.nest.add(name, nestable, **kw)
 
     def pop(self, name=None):
-        """Reverts to the nest stage just before the corresponding call of
+        """
+        Reverts to the nest stage just before the corresponding call of
         :meth:`SConsWrap.add_aggregate`.  However, any aggregate collections
         which have been worked on will still be accessible, and can be called
         operated on together after calling this method.  If no name is passed,
-        will revert to the last nest level."""
+        will revert to the last nest level.
+
+        :param name: Name of the nest level to pop.
+        """
         if name is not None:
             self.nest = self.checkpoints[name]
             keys = list(self.checkpoints.keys())
@@ -97,19 +107,22 @@ class SConsWrap(object):
             self.nest = self.checkpoints.popitem()[1]
 
     def add_nest(self, name=None, **kw):
-        "A simple decorator which wraps :meth:`Nest.add`."
+        """A simple decorator which wraps :meth:`nestly.core.Nest.add`."""
         def deco(func):
             self.add(name or func.__name__, func, **kw)
             return func
         return deco
 
     def add_target(self, name=None):
-        """Add an SCons target to this nest.
+        """
+        Add an SCons target to this nest.
 
         The function decorated will be immediately called with each of the
         output directories and current control dictionaries. Each result will
         be added to the respective control dictionary for later nests to
         access.
+
+        :param name: Name for the target in the name (default: function name).
         """
         def deco(func):
             def nestfunc(control):
@@ -152,12 +165,9 @@ class SConsWrap(object):
         return deco
 
     def add_aggregate(self, name, data_fac):
-        """Add an aggregate target to this nest.
+        """
+        Add an aggregate target to this nest.
 
-        The second argument is a nullary factory function which will be called
-        immediately for each of the current control dictionaries and stored in
-        each dictionary with the given name like in
-        :meth:`SConsWrap.add_target`.
 
         Since nests added after the aggregate can access the construct returned
         by the factory function value, it can be mutated to provide additional
@@ -167,6 +177,12 @@ class SConsWrap(object):
         nest levels created between addition of the aggregate and then can add
         any normal targets you would like which take advantage of the targets
         added to the data structure.
+
+        :param name: Name for the target in the nest
+        :param data_fac: a nullary factory function which will be called
+            immediately for each of the current control dictionaries and stored
+            in each dictionary with the given name as in
+            :meth:`SConsWrap.add_target`.
         """
         @self.add_target(name)
         def wrap(outdir, c):
