@@ -1,16 +1,22 @@
 language: python
-
 python:
-  - "2.7"
-  - "3.2"
-  - "3.3"
-  - "pypy"
-
-install: "pip install --use-mirrors -r dev_requirements.txt"
-
-script: "python setup.py test"
-
+- '2.7'
+- '3.2'
+- '3.3'
+- pypy
+install: pip install --use-mirrors -r dev_requirements.txt
+script: python setup.py test
 notifications:
   email:
-    - "cmccoy@fhcrc.org"
-    - "csmall@fhcrc.org"
+  - cmccoy@fhcrc.org
+  - csmall@fhcrc.org
+deploy:
+  provider: pypi
+  user: cmccoy
+  password:
+    secure: UMmR55OlFeDhK3BiN9HiWOVBeJHMY789VTllpRgaLwfFHEXVE3H584RlngdlQsX+9LvVAMgVMEI6n6aSm4S3q2Yp0MLfxJpq3d9dvqC/Ew62LTd6VOoH4s3sP4Dn7iLkGTmcgZBZ9jRhWiXuxwm+72Spq8xEIIbj5MOU5qXwrfo=
+  on:
+    tags: true
+    repo: fhcrc/nestly
+    python: 2.7
+  distributions: "sdist bdist_wheel"
