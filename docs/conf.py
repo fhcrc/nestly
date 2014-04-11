@@ -42,7 +42,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'nestly'
-copyright = u'2011, Erick Matsen et al.'
+copyright = u'2011-2014, Erick Matsen et al.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
