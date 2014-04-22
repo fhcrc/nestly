@@ -19,6 +19,7 @@ setup(name='nestly',
       running software with combinatorial choices of parameters easier.""",
       author='Erick Matsen',
       author_email='matsen@fhcrc.org',
+      url='https://github.com/fhcrc/nestly',
       packages=find_packages(),
       test_suite='nestly.test.suite',
       entry_points={
