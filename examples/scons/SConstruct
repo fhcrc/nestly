@@ -18,7 +18,9 @@ import os
 from nestly.scons import SConsWrap
 from nestly import Nest
 
-nest = SConsWrap(Nest(), 'build')
+env = Environment()
+
+nest = SConsWrap(Nest(), 'build', alias_register=env)
 
 
 # Add our aggregate targets, initializing collections that will get populated
@@ -72,7 +74,7 @@ def counts(outdir, c):
     return counts
 
 # Add a control dictionary with chosen values to each leaf directory
-nest.add_controls(Environment())
+nest.add_controls(env)
 
 # Before operating on our aggregate collections, we return back to the original
 # nest level in which the aggregates were created by using the `pop` function to
@@ -94,4 +96,3 @@ def all_cut(outdir, c):
     return Command(join(outdir, 'all_cut.txt'),
                    c['cut_agg'],
                    'cat $SOURCES >$TARGET')
-
