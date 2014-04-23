@@ -20,6 +20,10 @@ from nestly import Nest
 
 env = Environment()
 
+# Passing an argument to `alias_register` allows building targets based on nest
+# key.
+# For example, the `counts` files described below can be built by invoking
+# `scons counts`
 nest = SConsWrap(Nest(), 'build', alias_register=env)
 
 
