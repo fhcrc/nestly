@@ -1,5 +1,5 @@
 """SCons integration for nestly."""
-from collections import defaultdict, OrderedDict
+from collections import OrderedDict
 import json
 import logging
 import copy
