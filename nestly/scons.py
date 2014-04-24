@@ -58,12 +58,12 @@ class SConsWrap(object):
 
     :param nest: A :class:`Nest <nestly.core.Nest>` object to wrap
     :param dest_dir: The base directory for all output directories.
-    :param alias_register: An optional SCons ``Environment`` object.
+    :param alias_environment: An optional SCons ``Environment`` object.
         If present, targets added via :meth:`SConsWrap.add_target` will include
         an alias using the nest key.
     """
 
-    def __init__(self, nest, dest_dir='.', alias_register=None):
+    def __init__(self, nest, dest_dir='.', alias_environment=None):
         """Initialize an SConsWrap.
 
         Takes the Nest to operate on and the base directory for all output
@@ -71,7 +71,7 @@ class SConsWrap(object):
         """
         self.nest = nest
         self.dest_dir = dest_dir
-        self.alias_register = alias_register
+        self.alias_environment = alias_environment
         self.checkpoints = OrderedDict()
 
     def __iter__(self):
@@ -124,11 +124,11 @@ class SConsWrap(object):
         return deco
 
     def _register_alias(self, key):
-        if self.alias_register:
+        if self.alias_environment:
             values = [c[key] for _, c in self if c[key]]
-            values = self.alias_register.Flatten(values)
+            values = self.alias_environment.Flatten(values)
             if values:
-                self.alias_register.Alias(key, values)
+                self.alias_environment.Alias(key, values)
 
     def add_target(self, name=None):
         """
