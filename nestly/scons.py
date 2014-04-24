@@ -3,8 +3,9 @@ from collections import OrderedDict
 import json
 import logging
 import copy
-from . import core
 import os
+
+from . import core
 
 try:
     import SCons.Node
@@ -49,14 +50,20 @@ def name_targets(func):
 class SConsWrap(object):
     """A Nest wrapper to add SCons integration.
 
-    This class wraps a Nest in order to provide methods which are useful for
-    using nestly with SCons.
+    This class wraps a :class:`Nest <nestly.core.Nest>` in order to provide
+    methods which are useful for using nestly with SCons.
 
-    A Nest passed to SConsWrap must have been created with include_outdir=True,
-    which is the default.
+    A Nest passed to SConsWrap must have been created with
+    ``include_outdir=True``, which is the default.
+
+    :param nest: A :class:`Nest <nestly.core.Nest>` object to wrap
+    :param dest_dir: The base directory for all output directories.
+    :param alias_environment: An optional SCons ``Environment`` object.
+        If present, targets added via :meth:`SConsWrap.add_target` will include
+        an alias using the nest key.
     """
 
-    def __init__(self, nest, dest_dir='.'):
+    def __init__(self, nest, dest_dir='.', alias_environment=None):
         """Initialize an SConsWrap.
 
         Takes the Nest to operate on and the base directory for all output
@@ -64,6 +71,7 @@ class SConsWrap(object):
         """
         self.nest = nest
         self.dest_dir = dest_dir
+        self.alias_environment = alias_environment
         self.checkpoints = OrderedDict()
 
     def __iter__(self):
@@ -76,8 +84,10 @@ class SConsWrap(object):
         reverted to later for aggregation by calling :meth:`SConsWrap.pop`.
 
         :param name: Identifier for the nest level
-        :param nestable: A nestable object - see :meth:`nestly.core.Nest.add`.
-        :param kw: Additional parameters to pass to :meth:`nestly.core.Nest.add`.
+        :param nestable: A nestable object - see
+            :meth:`Nest.add() <nestly.core.Nest.add>`.
+        :param kw: Additional parameters to pass to
+            :meth:`Nest.add() <nestly.core.Nest.add>`.
         """
         if core._is_iter(nestable):
             self.checkpoints[name] = self.nest
@@ -113,6 +123,13 @@ class SConsWrap(object):
             return func
         return deco
 
+    def _register_alias(self, key):
+        if self.alias_environment:
+            values = [c[key] for _, c in self if c[key]]
+            values = self.alias_environment.Flatten(values)
+            if values:
+                self.alias_environment.Alias(key, values)
+
     def add_target(self, name=None):
         """
         Add an SCons target to this nest.
@@ -128,7 +145,9 @@ class SConsWrap(object):
             def nestfunc(control):
                 destdir = os.path.join(self.dest_dir, control['OUTDIR'])
                 return [func(destdir, control)]
-            self.nest.add(name or func.__name__, nestfunc, create_dir=False)
+            key = name or func.__name__
+            self.nest.add(key, nestfunc, create_dir=False)
+            self._register_alias(key)
             return func
         return deco
 
@@ -160,7 +179,9 @@ class SConsWrap(object):
                 destdir = os.path.join(self.dest_dir, control['OUTDIR'])
                 env['OUTDIR'] = destdir
                 return [func(env, destdir, control)]
-            self.nest.add(name or func.__name__, nestfunc, create_dir=False)
+            key = name or func.__name__
+            self.nest.add(key, nestfunc, create_dir=False)
+            self._register_alias(key)
             return func
         return deco
 
@@ -188,7 +209,8 @@ class SConsWrap(object):
         def wrap(outdir, c):
             return data_fac()
 
-    def add_controls(self, env, target_name='control', file_name='control.json',
+    def add_controls(self, env, target_name='control',
+                     file_name='control.json',
                      encoder_cls=SConsEncoder):
         """
         Adds a target to build a control file at each of the current leaves.
@@ -207,4 +229,3 @@ class SConsWrap(object):
                                action=_create_control_file,
                                control_dict=c,
                                encoder_cls=encoder_cls)
-
