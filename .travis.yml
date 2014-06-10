@@ -5,8 +5,9 @@ python:
 - '3.3'
 - pypy
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.7* ]]; then pip install --egg scons --use-mirrors; fi
-  - pip install --use-mirrors -r dev_requirements.txt
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.7* ]]; then pip install --egg scons; fi
+  - pip install -r dev_requirements.txt
+  - pip install .
 script:
   - nosetests --rednose nestly
   - if [[ $TRAVIS_PYTHON_VERSION == 2.7* ]]; then (cd examples/scons && scons); fi
