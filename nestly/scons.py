@@ -127,7 +127,7 @@ class SConsWrap(object):
         if self.alias_environment:
             values = [c[key] for _, c in self if c[key]]
             values = self.alias_environment.Flatten(values)
-            if values:
+            if values and not any(isinstance(v, dict) for v in values):
                 self.alias_environment.Alias(key, values)
 
     def add_target(self, name=None):
