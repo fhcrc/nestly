@@ -4,6 +4,7 @@ import json
 import logging
 import copy
 import os
+import warnings
 
 from . import core
 
@@ -12,7 +13,6 @@ try:
     import SCons.Node.FS
     HAS_SCONS = True
 except ImportError:
-    import warnings
     warnings.warn('Unable to import SCons. Some functionality not available.')
     HAS_SCONS = False
 
@@ -127,6 +127,10 @@ class SConsWrap(object):
         if self.alias_environment:
             values = [c[key] for _, c in self if c[key]]
             values = self.alias_environment.Flatten(values)
+            if values and any(isinstance(v, dict) for v in values):
+                warnings.warn(('Skipping adding alias for {0}: '
+                               'dictionaries in output.').format(key))
+                return
             if values and not any(isinstance(v, dict) for v in values):
                 self.alias_environment.Alias(key, values)
 
