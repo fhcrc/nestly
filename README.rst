@@ -13,6 +13,9 @@ The `full documentation`_ is available on ReadTheDocs.
 Installing
 ==========
 
+.. image:: https://travis-ci.org/fhcrc/nestly.svg?branch=master
+    :target: https://travis-ci.org/fhcrc/nestly
+
 The easiest way is with `pip`_::
 
     $ pip install nestly
@@ -22,15 +25,6 @@ Or, for the latest commit from master::
     $ pip install git+git://github.com/fhcrc/nestly.git@master
 
 Python 2.7 is required.
-
-Running the tests
-=================
-
-Run::
-
-    python setup.py test
-
-The `mock`_ library is required, but will be downloaded if missing.
 
 Introductory example
 ====================
@@ -126,6 +120,20 @@ SCons integration
 
 There is also a ``nestly.scons`` module to integrate nestly with the ``make`` replacement SCons_.
 
+Running the tests
+=================
+
+Run::
+
+    python setup.py test
+
+The `mock`_ library is required, but will be downloaded if missing.
+
+Paper
+=====
+
+McCoy CO, Gallagher A, Hoffman NG, Matsen FA (2013) nestly--a framework for running software with nested parameter choices and aggregating results. Bioinformatics 29: 387-388. `pubmed`_
+
 License
 =======
 
@@ -137,3 +145,4 @@ License
 .. _Scons: http://scons.org/
 .. _`MIT License`: http://www.opensource.org/licenses/mit-license.html
 .. _mock: https://pypi.python.org/pypi/mock
+.. _pubmed: http://www.ncbi.nlm.nih.gov/pubmed/23220574
