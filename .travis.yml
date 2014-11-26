@@ -24,4 +24,5 @@ deploy:
     tags: true
     repo: fhcrc/nestly
     python: 2.7
+    all_branches: true
   distributions: "sdist bdist_wheel"
