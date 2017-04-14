@@ -89,9 +89,8 @@ class SConsWrap(object):
         :param kw: Additional parameters to pass to
             :meth:`Nest.add() <nestly.core.Nest.add>`.
         """
-        if core._is_iter(nestable):
-            self.checkpoints[name] = self.nest
-            self.nest = copy.copy(self.nest)
+        self.checkpoints[name] = self.nest
+        self.nest = copy.copy(self.nest)
         return self.nest.add(name, nestable, **kw)
 
     def pop(self, name=None):
