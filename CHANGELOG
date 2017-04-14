@@ -1,7 +1,13 @@
 Changes
 =======
 
-0.6.0 
+0.6.1
+----------------------
+
+* Fix bug wherein pop does not work on nest levels added with a function (GH-23).
+
+
+0.6.0
 ----------------------
 
 * Add support for automatic alias creation in ``SConsWrap`` instances (GH-17).
